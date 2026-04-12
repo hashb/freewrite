@@ -88,7 +88,6 @@ struct ContentView: View {
     
     @State private var isFullscreen = false
     @State private var selectedFont: String = "Lato-Regular"
-    @State private var currentRandomFont: String = ""
     @State private var timeRemaining: Int = 900  // Changed to 900 seconds (15 minutes)
     @State private var timerIsRunning = false
     @State private var isHoveringTimer = false
@@ -675,9 +674,6 @@ struct ContentView: View {
         }
     }
     
-    var randomButtonTitle: String {
-        return currentRandomFont.isEmpty ? "Random" : "Random [\(currentRandomFont)]"
-    }
 
     private func startVideoRecordingPreflight() {
         guard !isPreparingVideoRecording, !showingVideoRecording else {
@@ -982,7 +978,6 @@ struct ContentView: View {
                                 
                                 Button("Lato") {
                                     selectedFont = "Lato-Regular"
-                                    currentRandomFont = ""
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundColor(hoveredFont == "Lato" ? textHoverColor : textColor)
@@ -999,14 +994,13 @@ struct ContentView: View {
                                 Text("•")
                                     .foregroundColor(.gray)
                                 
-                                Button("Arial") {
-                                    selectedFont = "Arial"
-                                    currentRandomFont = ""
+                                Button("Menlo") {
+                                    selectedFont = "Menlo-Regular"
                                 }
                                 .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "Arial" ? textHoverColor : textColor)
+                                .foregroundColor(hoveredFont == "Menlo" ? textHoverColor : textColor)
                                 .onHover { hovering in
-                                    hoveredFont = hovering ? "Arial" : nil
+                                    hoveredFont = hovering ? "Menlo" : nil
                                     isHoveringBottomNav = hovering
                                     if hovering {
                                         NSCursor.pointingHand.push()
@@ -1020,7 +1014,6 @@ struct ContentView: View {
                                 
                                 Button("System") {
                                     selectedFont = ".AppleSystemUIFont"
-                                    currentRandomFont = ""
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundColor(hoveredFont == "System" ? textHoverColor : textColor)
@@ -1034,45 +1027,6 @@ struct ContentView: View {
                                     }
                                 }
                                 
-                                Text("•")
-                                    .foregroundColor(.gray)
-                                
-                                Button("Serif") {
-                                    selectedFont = "Times New Roman"
-                                    currentRandomFont = ""
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "Serif" ? textHoverColor : textColor)
-                                .onHover { hovering in
-                                    hoveredFont = hovering ? "Serif" : nil
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
-                                
-                                Text("•")
-                                    .foregroundColor(.gray)
-                                
-                                Button(randomButtonTitle) {
-                                    if let randomFont = availableFonts.randomElement() {
-                                        selectedFont = randomFont
-                                        currentRandomFont = randomFont
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "Random" ? textHoverColor : textColor)
-                                .onHover { hovering in
-                                    hoveredFont = hovering ? "Random" : nil
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
                             }
                             .padding(8)
                             .cornerRadius(6)
