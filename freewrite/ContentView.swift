@@ -1182,11 +1182,11 @@ struct ContentView: View {
     }
 
     var footerPanelFillColor: Color {
-        currentTheme.background.opacity(currentTheme.isDarkTheme ? 0.22 : 0.12)
+        currentTheme.typeReverse.opacity(currentTheme.isDarkTheme ? 0.04 : 0.16)
     }
 
     var footerPanelStrokeColor: Color {
-        currentTheme.gridClear.opacity(currentTheme.isDarkTheme ? 0.42 : 0.65)
+        currentTheme.gridClear.opacity(currentTheme.isDarkTheme ? 0.28 : 0.55)
     }
 
     var footerButtonHoverFill: Color {
@@ -1205,6 +1205,17 @@ struct ContentView: View {
         Rectangle()
             .fill(footerDividerColor)
             .frame(width: 1, height: 14)
+    }
+
+    @ViewBuilder
+    private func footerGlassContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: 12) {
+                content()
+            }
+        } else {
+            content()
+        }
     }
 
     
@@ -1283,7 +1294,8 @@ struct ContentView: View {
                                 }
                             }
 
-                        HStack(alignment: .bottom, spacing: 12) {
+                        footerGlassContainer {
+                            HStack(alignment: .bottom, spacing: 12) {
                             if isViewingVideoEntry {
                                 HStack(spacing: 8) {
                                     if selectedVideoHasTranscript {
@@ -1765,10 +1777,10 @@ struct ContentView: View {
                                 isHoveringBottomNav = hovering
                             }
                         }
+                        }
 
                         .padding(.horizontal, 18)
                         .padding(.bottom, 10)
-                        .offset(y: footerOpacity >= 0.99 ? 0 : 8)
                         .opacity(footerOpacity)
                         .allowsHitTesting(footerOpacity > 0.01)
                         .animation(.easeOut(duration: 0.18), value: footerOpacity)
@@ -2016,30 +2028,66 @@ struct ContentView: View {
     }
 
     private func footerGroupChrome() -> some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
+        Group {
+            if #available(macOS 26.0, *) {
+                Color.clear
+                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(footerPanelStrokeColor.opacity(0.8), lineWidth: 1)
+                    )
+            } else {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(footerPanelFillColor)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(footerPanelStrokeColor, lineWidth: 1)
-            )
+                    .fill(Color.clear)
+                    .background(
+                        .ultraThinMaterial,
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(footerPanelFillColor)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(footerPanelStrokeColor, lineWidth: 1)
+                    )
+            }
+        }
     }
 
     private func footerButtonChrome(isHovered: Bool, isActive: Bool = false) -> some View {
-        RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .fill(isActive ? footerButtonActiveFill : (isHovered ? footerButtonHoverFill : Color.clear))
-            .overlay(
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .stroke(
+        Group {
+            if #available(macOS 26.0, *), isHovered || isActive {
+                Color.clear
+                    .glassEffect(
                         isActive
-                            ? currentTheme.typeSubtle.opacity(currentTheme.isDarkTheme ? 0.5 : 0.4)
-                            : footerPanelStrokeColor.opacity(isHovered ? 1.0 : 0.0),
-                        lineWidth: 1
+                            ? .regular.tint(currentTheme.isDarkTheme ? currentTheme.typeSubtlePlus : currentTheme.typeHighlight).interactive()
+                            : .regular.interactive(),
+                        in: RoundedRectangle(cornerRadius: 11, style: .continuous)
                     )
-            )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .stroke(
+                                isActive
+                                    ? currentTheme.typeSubtle.opacity(currentTheme.isDarkTheme ? 0.55 : 0.45)
+                                    : footerPanelStrokeColor.opacity(0.7),
+                                lineWidth: 1
+                            )
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(isActive ? footerButtonActiveFill : (isHovered ? footerButtonHoverFill : Color.clear))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .stroke(
+                                isActive
+                                    ? currentTheme.typeSubtle.opacity(currentTheme.isDarkTheme ? 0.5 : 0.4)
+                                    : footerPanelStrokeColor.opacity(isHovered ? 1.0 : 0.0),
+                                lineWidth: 1
+                            )
+                    )
+            }
+        }
     }
     
     private func backgroundColor(for entry: HumanEntry) -> Color {
@@ -2492,7 +2540,6 @@ struct ContentView: View {
             )
             
             // Draw the text frame
-            CTFrameDraw(frame, pdfContext)
             
             // Get the range of text that was actually displayed in this frame
             let visibleRange = CTFrameGetVisibleStringRange(frame)
