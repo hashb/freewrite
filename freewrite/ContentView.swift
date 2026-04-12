@@ -75,14 +75,63 @@ struct HeartEmoji: Identifiable {
     var offset: CGFloat = 0
 }
 
-struct AppTheme: Equatable {
+private struct AppThemeDefinition: Decodable {
+    let name: String
+    let isDarkTheme: Bool
+    let background: String
+    let backgroundFade: String
+    let typeMain: String
+    let typeSubtle: String
+    let typeSubtlePlus: String
+    let typeHighlight: String
+    let typeLight: String
+    let typeSuperlight: String
+    let typeHyperLight: String
+    let typeReverse: String
+    let accent1Main: String
+    let accent1Secondary: String
+    let accent1Tertiary: String
+    let accent2Main: String
+    let accent2Secondary: String
+    let accent3Main: String
+    let accent3Secondary: String
+    let accent4Main: String
+    let accent4Secondary: String
+    let accent5Main: String
+    let accent5Secondary: String
+    let gridSuperlight: String
+    let gridClear: String
+    let gridBold: String
+}
+
+struct AppTheme: Equatable, Identifiable {
     let id: String
     let name: String
     let isDarkTheme: Bool
     let background: Color
     let backgroundFade: Color
     let typeMain: Color
+    let typeSubtle: Color
+    let typeSubtlePlus: Color
+    let typeHighlight: Color
     let typeLight: Color
+    let typeSuperlight: Color
+    let typeHyperLight: Color
+    let typeReverse: Color
+    let accent1Main: Color
+    let accent1Secondary: Color
+    let accent1Tertiary: Color
+    let accent2Main: Color
+    let accent2Secondary: Color
+    let accent3Main: Color
+    let accent3Secondary: Color
+    let accent4Main: Color
+    let accent4Secondary: Color
+    let accent5Main: Color
+    let accent5Secondary: Color
+    let gridSuperlight: Color
+    let gridClear: Color
+    let gridBold: Color
 
     static func == (lhs: AppTheme, rhs: AppTheme) -> Bool { lhs.id == rhs.id }
 
@@ -99,27 +148,170 @@ struct AppTheme: Equatable {
         )
     }
 
-    static let all: [AppTheme] = [
-        AppTheme(id: "vancouver",    name: "Vancouver",    isDarkTheme: false, background: c("#FFFFFF"), backgroundFade: c("#ECECEC"), typeMain: c("#473F37"), typeLight: c("#B2B2B2")),
-        AppTheme(id: "a24",          name: "A24",          isDarkTheme: true,  background: c("#0F1612"), backgroundFade: c("#23332A"), typeMain: c("#E3D4B4"), typeLight: c("#828282")),
-        AppTheme(id: "agrabah",      name: "Agrabah",      isDarkTheme: true,  background: c("#0A0A28"), backgroundFade: c("#1B1943"), typeMain: c("#F0F0F0"), typeLight: c("#828282")),
-        AppTheme(id: "demogorgon",   name: "Demogorgon",   isDarkTheme: true,  background: c("#0A0A0F"), backgroundFade: c("#14141E"), typeMain: c("#E6E6E6"), typeLight: c("#828282")),
-        AppTheme(id: "gundam-wing",  name: "Gundam Wing",  isDarkTheme: false, background: c("#F5F5F5"), backgroundFade: c("#E4E2E2"), typeMain: c("#323232"), typeLight: c("#969696")),
-        AppTheme(id: "knight",       name: "Knight",       isDarkTheme: true,  background: c("#0A0A0F"), backgroundFade: c("#161822"), typeMain: c("#585858"), typeLight: c("#828282")),
-        AppTheme(id: "mononoke",     name: "Mononoke",     isDarkTheme: true,  background: c("#03180C"), backgroundFade: c("#0D2819"), typeMain: c("#DCDCDC"), typeLight: c("#A0A0A0")),
-        AppTheme(id: "muaddib",      name: "Muad'Dib",     isDarkTheme: false, background: c("#E1D2B4"), backgroundFade: c("#EDDEBF"), typeMain: c("#9F865E"), typeLight: c("#AE9C7E")),
-        AppTheme(id: "nord",         name: "Nord",         isDarkTheme: false, background: c("#FAF5E6"), backgroundFade: c("#FFFFF0"), typeMain: c("#321E0A"), typeLight: c("#969696")),
-        AppTheme(id: "piccolo",      name: "Piccolo",      isDarkTheme: false, background: c("#F5FFF5"), backgroundFade: c("#CEECCE"), typeMain: c("#323232"), typeLight: c("#969696")),
-        AppTheme(id: "sanrio",       name: "Sanrio",       isDarkTheme: false, background: c("#FFFFFF"), backgroundFade: c("#F4E7ED"), typeMain: c("#E876B2"), typeLight: c("#9CCCE8")),
-        AppTheme(id: "shadow-moses", name: "Shadow Moses", isDarkTheme: true,  background: c("#292D2D"), backgroundFade: c("#374041"), typeMain: c("#CADEE8"), typeLight: c("#859393")),
-        AppTheme(id: "tartan",       name: "Tartan",       isDarkTheme: false, background: c("#F3F1EB"), backgroundFade: c("#FFFFF0"), typeMain: c("#3C280A"), typeLight: c("#828282")),
-        AppTheme(id: "tokyo-drift",  name: "Tokyo Drift",  isDarkTheme: true,  background: c("#2A2626"), backgroundFade: c("#302F2F"), typeMain: c("#EBE3DB"), typeLight: c("#7B7B7B")),
-        AppTheme(id: "totoro",       name: "Totoro",       isDarkTheme: false, background: c("#FAF5EB"), backgroundFade: c("#E8DECD"), typeMain: c("#46321E"), typeLight: c("#B4B4B4")),
-        AppTheme(id: "vendetta",     name: "Vendetta",     isDarkTheme: true,  background: c("#141414"), backgroundFade: c("#330404"), typeMain: c("#DCDCDC"), typeLight: c("#787878")),
+    private static let preferredOrder = [
+        "vancouver", "a24", "agrabah", "demogorgon", "gundam-wing", "knight", "mononoke", "muaddib",
+        "nord", "piccolo", "sanrio", "shadow-moses", "tartan", "tokyo-drift", "totoro", "vendetta"
     ]
+
+    private static let fallbackTheme = AppTheme(
+        id: "vancouver",
+        name: "Vancouver",
+        isDarkTheme: false,
+        background: c("#FFFFFF"),
+        backgroundFade: c("#ECECEC"),
+        typeMain: c("#473F37"),
+        typeSubtle: c("#1F4F79"),
+        typeSubtlePlus: c("#085EA3"),
+        typeHighlight: c("#FFEBCF"),
+        typeLight: c("#B2B2B2"),
+        typeSuperlight: c("#DAD9D7"),
+        typeHyperLight: c("#F2F2F2"),
+        typeReverse: c("#FFFFFF"),
+        accent1Main: c("#0B486B"),
+        accent1Secondary: c("#0F8C8C"),
+        accent1Tertiary: c("#417863"),
+        accent2Main: c("#C14DFB"),
+        accent2Secondary: c("#C14DFB80"),
+        accent3Main: c("#4DA425"),
+        accent3Secondary: c("#3C7F1C"),
+        accent4Main: c("#FF9E3C"),
+        accent4Secondary: c("#CE741A"),
+        accent5Main: c("#FF3B30"),
+        accent5Secondary: c("#AC2E27"),
+        gridSuperlight: c("#D9EEFACC"),
+        gridClear: c("#CBE1EDCC"),
+        gridBold: c("#ABCBDDCC")
+    )
+
+    static let all: [AppTheme] = loadAll()
+
+    private static func makeTheme(id: String, definition: AppThemeDefinition) -> AppTheme {
+        AppTheme(
+            id: id,
+            name: definition.name,
+            isDarkTheme: definition.isDarkTheme,
+            background: c(definition.background),
+            backgroundFade: c(definition.backgroundFade),
+            typeMain: c(definition.typeMain),
+            typeSubtle: c(definition.typeSubtle),
+            typeSubtlePlus: c(definition.typeSubtlePlus),
+            typeHighlight: c(definition.typeHighlight),
+            typeLight: c(definition.typeLight),
+            typeSuperlight: c(definition.typeSuperlight),
+            typeHyperLight: c(definition.typeHyperLight),
+            typeReverse: c(definition.typeReverse),
+            accent1Main: c(definition.accent1Main),
+            accent1Secondary: c(definition.accent1Secondary),
+            accent1Tertiary: c(definition.accent1Tertiary),
+            accent2Main: c(definition.accent2Main),
+            accent2Secondary: c(definition.accent2Secondary),
+            accent3Main: c(definition.accent3Main),
+            accent3Secondary: c(definition.accent3Secondary),
+            accent4Main: c(definition.accent4Main),
+            accent4Secondary: c(definition.accent4Secondary),
+            accent5Main: c(definition.accent5Main),
+            accent5Secondary: c(definition.accent5Secondary),
+            gridSuperlight: c(definition.gridSuperlight),
+            gridClear: c(definition.gridClear),
+            gridBold: c(definition.gridBold)
+        )
+    }
+
+    private static func loadAll() -> [AppTheme] {
+        guard let resourceRoot = Bundle.main.resourceURL else {
+            return [fallbackTheme]
+        }
+
+        let fileManager = FileManager.default
+        let decoder = JSONDecoder()
+        var themesByID: [String: AppTheme] = [:]
+
+        if let enumerator = fileManager.enumerator(at: resourceRoot, includingPropertiesForKeys: nil) {
+            for case let url as URL in enumerator where url.pathExtension == "json" {
+                guard let data = try? Data(contentsOf: url),
+                      let definition = try? decoder.decode(AppThemeDefinition.self, from: data) else {
+                    continue
+                }
+
+                let id = url.deletingPathExtension().lastPathComponent
+                themesByID[id] = makeTheme(id: id, definition: definition)
+            }
+        }
+
+        if themesByID.isEmpty {
+            return [fallbackTheme]
+        }
+
+        return themesByID.values.sorted { lhs, rhs in
+            let lhsIndex = preferredOrder.firstIndex(of: lhs.id) ?? Int.max
+            let rhsIndex = preferredOrder.firstIndex(of: rhs.id) ?? Int.max
+
+            if lhsIndex == rhsIndex {
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+
+            return lhsIndex < rhsIndex
+        }
+    }
 
     static func find(id: String) -> AppTheme {
         all.first { $0.id == id } ?? all[0]
+    }
+}
+
+struct ThemePickerRow: View {
+    let theme: AppTheme
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(theme.background)
+                .frame(width: 26, height: 26)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(theme.gridClear.opacity(0.9), lineWidth: 1)
+                )
+                .overlay(
+                    HStack(spacing: 3) {
+                        Circle()
+                            .fill(theme.typeSubtle)
+                            .frame(width: 5, height: 5)
+
+                        Circle()
+                            .fill(theme.typeHighlight)
+                            .frame(width: 5, height: 5)
+                    }
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(theme.name)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(theme.typeMain)
+
+                Text(theme.isDarkTheme ? "Dark" : "Light")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundColor(theme.typeLight)
+            }
+
+            Spacer()
+
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(theme.typeSubtle)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(isSelected ? theme.typeHighlight.opacity(theme.isDarkTheme ? 0.18 : 0.62) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(isSelected ? theme.typeSubtle.opacity(0.55) : theme.gridClear.opacity(0.55), lineWidth: 1)
+        )
     }
 }
 
@@ -128,43 +320,76 @@ struct ThemePickerView: View {
     @Binding var showingThemePicker: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(AppTheme.all, id: \.id) { theme in
-                    Button(action: {
-                        currentTheme = theme
-                        UserDefaults.standard.set(theme.id, forKey: "themeId")
-                        showingThemePicker = false
-                    }) {
-                        HStack(spacing: 10) {
-                            Circle()
-                                .fill(theme.background)
-                                .overlay(Circle().stroke(theme.typeLight, lineWidth: 1))
-                                .frame(width: 14, height: 14)
-                            Text(theme.name)
-                                .font(.system(size: 13))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            if theme == currentTheme {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 11, weight: .semibold))
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Themes")
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundColor(currentTheme.typeMain)
+
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(AppTheme.all) { theme in
+                        Button(action: {
+                            currentTheme = theme
+                            UserDefaults.standard.set(theme.id, forKey: "themeId")
+                            showingThemePicker = false
+                        }) {
+                            ThemePickerRow(theme: theme, isSelected: theme == currentTheme)
+                        }
+                        .buttonStyle(.plain)
+                        .onHover { hovering in
+                            if hovering {
+                                NSCursor.pointingHand.push()
+                            } else {
+                                NSCursor.pop()
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(currentTheme.typeMain)
-                    .onHover { hovering in
-                        if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                    }
-                    if theme.id != AppTheme.all.last?.id {
-                        Divider()
                     }
                 }
+                .padding(.vertical, 2)
             }
+            .scrollIndicators(.never)
         }
-        .frame(width: 200)
+        .padding(12)
+        .frame(width: 250, height: 330)
         .background(currentTheme.background)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(currentTheme.gridClear.opacity(0.85), lineWidth: 1)
+        )
+    }
+}
+
+struct TextEditorThemeConfigurator: NSViewRepresentable {
+    let theme: AppTheme
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            applyTheme(from: view)
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async {
+            applyTheme(from: nsView)
+        }
+    }
+
+    private func applyTheme(from nsView: NSView) {
+        guard let textView = nsView.superview?.findSubview(ofType: NSTextView.self)
+            ?? nsView.window?.contentView?.findSubview(ofType: NSTextView.self) else {
+            return
+        }
+
+        textView.drawsBackground = false
+        textView.backgroundColor = .clear
+        textView.textColor = NSColor(theme.typeMain)
+        textView.insertionPointColor = NSColor(theme.typeSubtle)
+        textView.selectedTextAttributes = [
+            .backgroundColor: NSColor(theme.typeHighlight),
+            .foregroundColor: NSColor(theme.typeMain)
+        ]
     }
 }
 
@@ -193,8 +418,8 @@ struct ContentView: View {
     @State private var opacity: Double = 1.0
     @State private var shouldShowGray = true // New state to control color
     @State private var lastClickTime: Date? = nil
-    @State private var bottomNavOpacity: Double = 1.0
     @State private var isHoveringBottomNav = false
+    @State private var isHoveringFooterZone = false
     @State private var selectedEntryIndex: Int = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var selectedEntryId: UUID? = nil
@@ -936,18 +1161,55 @@ struct ContentView: View {
         return "\(Int(fontSize))px"
     }
     
-    // Add a color utility computed property
     var popoverBackgroundColor: Color {
-        return currentTheme.background
+        return currentTheme.isDarkTheme ? currentTheme.backgroundFade : currentTheme.typeReverse
     }
 
     var popoverTextColor: Color {
         return currentTheme.typeMain
     }
 
+    var footerOpacity: Double {
+        if showingVideoRecording {
+            return 0
+        }
+
+        if isHoveringBottomNav || isHoveringFooterZone || showingThemePicker || showingChatMenu || showingVideoPermissionPopover {
+            return 1.0
+        }
+
+        return 0.0
+    }
+
+    var footerPanelFillColor: Color {
+        currentTheme.background.opacity(currentTheme.isDarkTheme ? 0.22 : 0.12)
+    }
+
+    var footerPanelStrokeColor: Color {
+        currentTheme.gridClear.opacity(currentTheme.isDarkTheme ? 0.42 : 0.65)
+    }
+
+    var footerButtonHoverFill: Color {
+        currentTheme.isDarkTheme ? currentTheme.typeReverse.opacity(0.08) : currentTheme.typeReverse.opacity(0.42)
+    }
+
+    var footerButtonActiveFill: Color {
+        currentTheme.isDarkTheme ? currentTheme.typeSubtlePlus.opacity(0.22) : currentTheme.typeHighlight.opacity(0.55)
+    }
+
+    var footerDividerColor: Color {
+        currentTheme.typeLight.opacity(currentTheme.isDarkTheme ? 0.28 : 0.4)
+    }
+
+    var footerDivider: some View {
+        Rectangle()
+            .fill(footerDividerColor)
+            .frame(width: 1, height: 14)
+    }
+
     
     var body: some View {
-        let navHeight: CGFloat = 68
+        let navHeight: CGFloat = 64
         let textColor = currentTheme.typeLight
         let textHoverColor = currentTheme.typeMain
         let isViewingVideoEntry = currentVideoURL != nil
@@ -970,7 +1232,7 @@ struct ContentView: View {
                 } else {
                     // Show text editor for text entries
                     TextEditor(text: $text)
-                    .background(currentTheme.background)
+                    .background(TextEditorThemeConfigurator(theme: currentTheme))
                     .font(.custom(selectedFont, size: fontSize))
                     .foregroundColor(currentTheme.typeMain)
                     .scrollContentBackground(.hidden)
@@ -979,7 +1241,7 @@ struct ContentView: View {
                     .frame(maxWidth: 650)
                     .padding(.top, 40)
                     .id("\(selectedFont)-\(fontSize)-\(colorScheme)")
-                    .padding(.bottom, bottomNavOpacity > 0 ? navHeight : 0)
+                    .padding(.bottom, footerOpacity > 0.05 ? navHeight : 0)
                     .colorScheme(colorScheme)
                     .onAppear {
                         placeholderText = placeholderOptions.randomElement() ?? "Begin writing"
@@ -1000,31 +1262,95 @@ struct ContentView: View {
                             if text.isEmpty {
                                 Text(placeholderText)
                                     .font(.custom(selectedFont, size: fontSize))
-                                    .foregroundColor(currentTheme.typeLight.opacity(0.6))
+                                    .foregroundColor(currentTheme.typeLight.opacity(0.72))
                                     .allowsHitTesting(false)
                                     .offset(x: 5, y: 40)
                             }
                         }, alignment: .topLeading
                     )
                 }
-                    
-                
-                VStack {
+
+                VStack(spacing: 0) {
                     Spacer()
-                    HStack {
-                        if isViewingVideoEntry {
-                            HStack(spacing: 8) {
-                                if selectedVideoHasTranscript {
+                    ZStack(alignment: .bottom) {
+                        Rectangle()
+                            .fill(Color.clear)
+                            .frame(height: 26)
+                            .contentShape(Rectangle())
+                            .onHover { hovering in
+                                withAnimation(hovering ? .easeOut(duration: 0.18) : .easeIn(duration: 0.35)) {
+                                    isHoveringFooterZone = hovering
+                                }
+                            }
+
+                        HStack(alignment: .bottom, spacing: 12) {
+                            if isViewingVideoEntry {
+                                HStack(spacing: 8) {
+                                    if selectedVideoHasTranscript {
+                                        Button(action: {
+                                            copyTranscriptForSelectedVideoEntry()
+                                        }) {
+                                            Text(didCopyTranscript ? "Copied Transcript" : "Copy Transcript")
+                                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                                .foregroundColor(isHoveringCopyTranscript ? textHoverColor : textColor)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .background(footerButtonChrome(isHovered: isHoveringCopyTranscript, isActive: didCopyTranscript))
+                                        }
+                                        .buttonStyle(.plain)
+                                        .onHover { hovering in
+                                            isHoveringCopyTranscript = hovering
+                                            isHoveringBottomNav = hovering
+                                            if hovering {
+                                                NSCursor.pointingHand.push()
+                                            } else {
+                                                NSCursor.pop()
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(6)
+                                .background(footerGroupChrome())
+                                .onHover { hovering in
+                                    isHoveringBottomNav = hovering
+                                }
+                            } else {
+                                HStack(spacing: 8) {
                                     Button(action: {
-                                        copyTranscriptForSelectedVideoEntry()
+                                        showingThemePicker.toggle()
                                     }) {
-                                        Text(didCopyTranscript ? "Copied Transcript" : "Copy Transcript")
-                                            .font(.system(size: 13))
+                                        HStack(spacing: 10) {
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [currentTheme.backgroundFade, currentTheme.background],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                                .frame(width: 18, height: 18)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                        .stroke(currentTheme.gridClear.opacity(0.8), lineWidth: 1)
+                                                )
+
+                                            VStack(alignment: .leading, spacing: 1) {
+                                                Text(currentTheme.name)
+                                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            }
+
+                                            Image(systemName: "chevron.up")
+                                                .font(.system(size: 9, weight: .bold))
+                                                .foregroundColor(textColor)
+                                        }
+                                        .foregroundColor(isHoveringThemePicker ? textHoverColor : textColor)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(footerButtonChrome(isHovered: isHoveringThemePicker, isActive: showingThemePicker))
                                     }
                                     .buttonStyle(.plain)
-                                    .foregroundColor(isHoveringCopyTranscript ? textHoverColor : textColor)
                                     .onHover { hovering in
-                                        isHoveringCopyTranscript = hovering
+                                        isHoveringThemePicker = hovering
                                         isHoveringBottomNav = hovering
                                         if hovering {
                                             NSCursor.pointingHand.push()
@@ -1032,44 +1358,20 @@ struct ContentView: View {
                                             NSCursor.pop()
                                         }
                                     }
+                                    .popover(isPresented: $showingThemePicker, attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0.0)), arrowEdge: .top) {
+                                        ThemePickerView(currentTheme: $currentTheme, showingThemePicker: $showingThemePicker)
+                                    }
                                 }
-                            }
-                            .padding(8)
-                            .cornerRadius(6)
-                            .onHover { hovering in
-                                isHoveringBottomNav = hovering
-                            }
-                        } else {
-                            // Theme picker (left)
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    showingThemePicker.toggle()
-                                }) {
-                                    Text(currentTheme.name)
-                                        .font(.system(size: 13))
-                                        .foregroundColor(isHoveringThemePicker ? textHoverColor : textColor)
-                                }
-                                .buttonStyle(.plain)
+                                .padding(6)
+                                .background(footerGroupChrome())
                                 .onHover { hovering in
-                                    isHoveringThemePicker = hovering
                                     isHoveringBottomNav = hovering
-                                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-                                }
-                                .popover(isPresented: $showingThemePicker, attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0.0)), arrowEdge: .top) {
-                                    ThemePickerView(currentTheme: $currentTheme, showingThemePicker: $showingThemePicker)
                                 }
                             }
-                            .padding(8)
-                            .cornerRadius(6)
-                            .onHover { hovering in
-                                isHoveringBottomNav = hovering
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // Utility buttons (moved to right)
-                        HStack(spacing: 8) {
+
+                            Spacer()
+
+                            HStack(spacing: 6) {
                             Button(timerButtonTitle) {
                                 let now = Date()
                                 if let lastClick = lastClickTime,
@@ -1084,6 +1386,9 @@ struct ContentView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundColor(timerColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(footerButtonChrome(isHovered: isHoveringTimer, isActive: timerIsRunning))
                             .onHover { hovering in
                                 isHoveringTimer = hovering
                                 isHoveringBottomNav = hovering
@@ -1112,8 +1417,7 @@ struct ContentView: View {
                                 }
                             }
 
-                            Text("•")
-                                .foregroundColor(textColor)
+                            footerDivider
 
                             // Video camera button
                             Button(action: {
@@ -1131,6 +1435,9 @@ struct ContentView: View {
                                     }
                                 }
                                 .frame(width: 14, height: 14)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(footerButtonChrome(isHovered: isHoveringVideoButton, isActive: isPreparingVideoRecording))
                             }
                             .buttonStyle(.plain)
                             .onHover { hovering in
@@ -1195,11 +1502,10 @@ struct ContentView: View {
                                     }
                                 }
                                 .frame(minWidth: 300, idealWidth: 320, maxWidth: 360)
-                                .background(currentTheme.background)
+                                .background(popoverBackgroundColor)
                             }
 
-                            Text("•")
-                                .foregroundColor(textColor)
+                            footerDivider
 
                             Button("Chat") {
                                 showingChatMenu = true
@@ -1208,6 +1514,9 @@ struct ContentView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundColor(isHoveringChat ? textHoverColor : textColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(footerButtonChrome(isHovered: isHoveringChat, isActive: showingChatMenu))
                             .onHover { hovering in
                                 isHoveringChat = hovering
                                 isHoveringBottomNav = hovering
@@ -1348,15 +1657,14 @@ struct ContentView: View {
                                 .cornerRadius(8)
                                 .shadow(color: Color.black.opacity(0.1), radius: 4, y: 2)
                                 // Reset copied state when popover dismisses
-                                .onChange(of: showingChatMenu) { newValue in
-                                    if !newValue {
+                                .onChange(of: showingChatMenu) { _, isShowing in
+                                    if !isShowing {
                                         didCopyPrompt = false
                                     }
                                 }
                             }
                             
-                            Text("•")
-                                .foregroundColor(textColor)
+                            footerDivider
 
                             if !isViewingVideoEntry {
                                 // Backspace toggle button
@@ -1365,6 +1673,9 @@ struct ContentView: View {
                                 }) {
                                     Text(backspaceDisabled ? "Backspace is Off" : "Backspace is On")
                                         .foregroundColor(isHoveringBackspaceToggle ? textHoverColor : textColor)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(footerButtonChrome(isHovered: isHoveringBackspaceToggle, isActive: backspaceDisabled))
                                 }
                                 .buttonStyle(.plain)
                                 .onHover { hovering in
@@ -1377,8 +1688,7 @@ struct ContentView: View {
                                     }
                                 }
 
-                                Text("•")
-                                    .foregroundColor(.gray)
+                                footerDivider
                             }
 
                             Button(isFullscreen ? "Minimize" : "Fullscreen") {
@@ -1388,6 +1698,9 @@ struct ContentView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundColor(isHoveringFullscreen ? textHoverColor : textColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(footerButtonChrome(isHovered: isHoveringFullscreen, isActive: isFullscreen))
                             .onHover { hovering in
                                 isHoveringFullscreen = hovering
                                 isHoveringBottomNav = hovering
@@ -1398,8 +1711,7 @@ struct ContentView: View {
                                 }
                             }
                             
-                            Text("•")
-                                .foregroundColor(textColor)
+                            footerDivider
                             
                             Button(action: {
                                 createNewEntry()
@@ -1409,6 +1721,9 @@ struct ContentView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundColor(isHoveringNewEntry ? textHoverColor : textColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(footerButtonChrome(isHovered: isHoveringNewEntry))
                             .onHover { hovering in
                                 isHoveringNewEntry = hovering
                                 isHoveringBottomNav = hovering
@@ -1419,8 +1734,7 @@ struct ContentView: View {
                                 }
                             }
                             
-                            Text("•")
-                                .foregroundColor(textColor)
+                            footerDivider
 
                             // Version history button
                             Button(action: {
@@ -1430,6 +1744,9 @@ struct ContentView: View {
                             }) {
                                 Image(systemName: "clock.arrow.circlepath")
                                     .foregroundColor(isHoveringClock ? textHoverColor : textColor)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(footerButtonChrome(isHovered: isHoveringClock, isActive: showingSidebar))
                             }
                             .buttonStyle(.plain)
                             .onHover { hovering in
@@ -1442,20 +1759,19 @@ struct ContentView: View {
                                 }
                             }
                         }
-                        .padding(8)
-                        .cornerRadius(6)
-                        .onHover { hovering in
-                            isHoveringBottomNav = hovering
+                            .padding(4)
+                            .background(footerGroupChrome())
+                            .onHover { hovering in
+                                isHoveringBottomNav = hovering
+                            }
                         }
-                    }
-                    .padding()
-                    .background(currentTheme.background)
-                    .opacity(bottomNavOpacity)
-                    .onHover { hovering in
-                        isHoveringBottomNav = hovering
-                        withAnimation(hovering ? .easeOut(duration: 0.15) : .easeIn(duration: 0.4)) {
-                            bottomNavOpacity = hovering ? 1.0 : 0.0
-                        }
+
+                        .padding(.horizontal, 18)
+                        .padding(.bottom, 10)
+                        .offset(y: footerOpacity >= 0.99 ? 0 : 8)
+                        .opacity(footerOpacity)
+                        .allowsHitTesting(footerOpacity > 0.01)
+                        .animation(.easeOut(duration: 0.18), value: footerOpacity)
                     }
                 }
             }
@@ -1481,7 +1797,7 @@ struct ContentView: View {
                                 }
                                 Text(getDocumentsDirectory().path)
                                     .font(.system(size: 10))
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(currentTheme.typeLight)
                                     .lineLimit(1)
                             }
                             Spacer()
@@ -1553,7 +1869,7 @@ struct ContentView: View {
                                                 Text(entry.previewText)
                                                     .font(.system(size: 13))
                                                     .lineLimit(1)
-                                                    .foregroundColor(.primary)
+                                                    .foregroundColor(currentTheme.typeMain)
 
                                                 Spacer()
                                                 
@@ -1606,7 +1922,7 @@ struct ContentView: View {
                                             
                                             Text(entry.date)
                                                 .font(.system(size: 12))
-                                                .foregroundColor(.secondary)
+                                                .foregroundColor(currentTheme.typeLight)
                                         }
                                     }
                                     .frame(maxWidth: .infinity)
@@ -1638,7 +1954,13 @@ struct ContentView: View {
                     .scrollIndicators(.never)
                 }
                 .frame(width: 200)
-                .background(currentTheme.background)
+                .background(
+                    LinearGradient(
+                        colors: [currentTheme.backgroundFade.opacity(0.98), currentTheme.background],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
             }
         }
         .overlay {
@@ -1670,7 +1992,7 @@ struct ContentView: View {
                 clearVideoRecordingPreparationState()
             }
         }
-        .onChange(of: text) { _ in
+        .onChange(of: text) { _, _ in
             // Save current entry when text changes
             if let currentId = selectedEntryId,
                let currentEntry = entries.first(where: { $0.id == currentId }),
@@ -1692,12 +2014,43 @@ struct ContentView: View {
             isFullscreen = false
         }
     }
+
+    private func footerGroupChrome() -> some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(footerPanelFillColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(footerPanelStrokeColor, lineWidth: 1)
+            )
+    }
+
+    private func footerButtonChrome(isHovered: Bool, isActive: Bool = false) -> some View {
+        RoundedRectangle(cornerRadius: 11, style: .continuous)
+            .fill(isActive ? footerButtonActiveFill : (isHovered ? footerButtonHoverFill : Color.clear))
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .stroke(
+                        isActive
+                            ? currentTheme.typeSubtle.opacity(currentTheme.isDarkTheme ? 0.5 : 0.4)
+                            : footerPanelStrokeColor.opacity(isHovered ? 1.0 : 0.0),
+                        lineWidth: 1
+                    )
+            )
+    }
     
     private func backgroundColor(for entry: HumanEntry) -> Color {
         if entry.id == selectedEntryId {
-            return currentTheme.typeLight.opacity(0.15)
+            return currentTheme.isDarkTheme
+                ? currentTheme.typeSubtlePlus.opacity(0.24)
+                : currentTheme.typeHighlight.opacity(0.88)
         } else if entry.id == hoveredEntryId {
-            return currentTheme.typeLight.opacity(0.07)
+            return currentTheme.isDarkTheme
+                ? currentTheme.typeSuperlight.opacity(0.22)
+                : currentTheme.typeHyperLight.opacity(0.95)
         } else {
             return Color.clear
         }
