@@ -830,14 +830,40 @@ struct ContentView: View {
         return String(format: "%d:%02d", minutes, seconds)
     }
     
+    // MARK: - Theme Colors
+
+    private var themeBackgroundColor: Color {
+        colorScheme == .light ? Color(red: 0.961, green: 1.0, blue: 0.961) : Color(red: 0.165, green: 0.149, blue: 0.149)
+    }
+
+    private var themePrimaryTextColor: Color {
+        colorScheme == .light ? Color(red: 0.196, green: 0.196, blue: 0.196) : Color(red: 0.922, green: 0.890, blue: 0.859)
+    }
+
+    private var themeSecondaryTextColor: Color {
+        colorScheme == .light ? Color(red: 0.784, green: 0.784, blue: 0.784) : Color(red: 0.322, green: 0.302, blue: 0.302)
+    }
+
+    private var themeSecondaryTextHoverColor: Color {
+        colorScheme == .light ? Color(red: 0.902, green: 0.902, blue: 0.902) : Color(red: 0.204, green: 0.204, blue: 0.204)
+    }
+
+    private var themeDotSeparatorColor: Color {
+        colorScheme == .light ? Color(red: 0.863, green: 0.863, blue: 0.863) : Color(red: 0.188, green: 0.200, blue: 0.212)
+    }
+
+    private var themeCaretColor: Color {
+        colorScheme == .light ? Color(red: 0.627, green: 0.196, blue: 0.706) : Color(red: 0.345, green: 0.761, blue: 1.0)
+    }
+
     var timerColor: Color {
         if timerIsRunning {
-            return isHoveringTimer ? (colorScheme == .light ? .black : .white) : .gray.opacity(0.8)
+            return isHoveringTimer ? themeSecondaryTextHoverColor : themeSecondaryTextColor
         } else {
-            return isHoveringTimer ? (colorScheme == .light ? .black : .white) : (colorScheme == .light ? .gray : .gray.opacity(0.8))
+            return isHoveringTimer ? themeSecondaryTextHoverColor : themeSecondaryTextColor
         }
     }
-    
+
     var lineHeight: CGFloat {
         let font = NSFont(name: selectedFont, size: fontSize) ?? .systemFont(ofSize: fontSize)
         let defaultLineHeight = getLineHeight(font: font)
@@ -849,26 +875,21 @@ struct ContentView: View {
     }
     
     // Add a color utility computed property
-    var popoverBackgroundColor: Color {
-        return colorScheme == .light ? Color(NSColor.controlBackgroundColor) : Color(NSColor.darkGray)
-    }
-    
-    var popoverTextColor: Color {
-        return colorScheme == .light ? Color.primary : Color.white
-    }
+    var popoverBackgroundColor: Color { themeBackgroundColor }
+
+    var popoverTextColor: Color { themePrimaryTextColor }
 
     
     var body: some View {
-        let buttonBackground = colorScheme == .light ? Color.white : Color.black
         let navHeight: CGFloat = 68
-        let textColor = colorScheme == .light ? Color.gray : Color.gray.opacity(0.8)
-        let textHoverColor = colorScheme == .light ? Color.black : Color.white
+        let textColor = themeSecondaryTextColor
+        let textHoverColor = themeSecondaryTextHoverColor
         let isViewingVideoEntry = currentVideoURL != nil
         
         HStack(spacing: 0) {
             // Main content
             ZStack {
-                Color(colorScheme == .light ? .white : .black)
+                themeBackgroundColor
                     .ignoresSafeArea()
 
                 // Show video player if a video entry is selected
@@ -883,9 +904,9 @@ struct ContentView: View {
                 } else {
                     // Show text editor for text entries
                     TextEditor(text: $text)
-                    .background(Color(colorScheme == .light ? .white : .black))
+                    .background(themeBackgroundColor)
                     .font(.custom(selectedFont, size: fontSize))
-                    .foregroundColor(colorScheme == .light ? Color(red: 0.20, green: 0.20, blue: 0.20) : Color(red: 0.9, green: 0.9, blue: 0.9))
+                    .foregroundColor(themePrimaryTextColor)
                     .scrollContentBackground(.hidden)
                     .scrollIndicators(.never)
                     .lineSpacing(lineHeight)
@@ -894,6 +915,7 @@ struct ContentView: View {
                     .id("\(selectedFont)-\(fontSize)-\(colorScheme)")
                     .padding(.bottom, bottomNavOpacity > 0 ? navHeight : 0)
                     .colorScheme(colorScheme)
+                    .tint(themeCaretColor)
                     .onAppear {
                         placeholderText = placeholderOptions.randomElement() ?? "Begin writing"
                         // Removed findSubview code which was causing errors
@@ -913,7 +935,7 @@ struct ContentView: View {
                             if text.isEmpty {
                                 Text(placeholderText)
                                     .font(.custom(selectedFont, size: fontSize))
-                                    .foregroundColor(colorScheme == .light ? .gray.opacity(0.5) : .gray.opacity(0.6))
+                                    .foregroundColor(themeSecondaryTextColor)
                                     .allowsHitTesting(false)
                                     .offset(x: 5, y: 40)
                             }
@@ -974,7 +996,7 @@ struct ContentView: View {
                                 }
                                 
                                 Text("•")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeDotSeparatorColor)
                                 
                                 Button("Lato") {
                                     selectedFont = "Lato-Regular"
@@ -992,7 +1014,7 @@ struct ContentView: View {
                                 }
                                 
                                 Text("•")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeDotSeparatorColor)
                                 
                                 Button("Menlo") {
                                     selectedFont = "Menlo-Regular"
@@ -1010,7 +1032,7 @@ struct ContentView: View {
                                 }
                                 
                                 Text("•")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeDotSeparatorColor)
                                 
                                 Button("System") {
                                     selectedFont = ".AppleSystemUIFont"
@@ -1082,7 +1104,7 @@ struct ContentView: View {
                             }
 
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeDotSeparatorColor)
 
                             // Video camera button
                             Button(action: {
@@ -1164,11 +1186,11 @@ struct ContentView: View {
                                     }
                                 }
                                 .frame(minWidth: 300, idealWidth: 320, maxWidth: 360)
-                                .background(colorScheme == .light ? Color.white : Color.black)
+                                .background(themeBackgroundColor)
                             }
 
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeDotSeparatorColor)
 
                             Button("Chat") {
                                 showingChatMenu = true
@@ -1325,7 +1347,7 @@ struct ContentView: View {
                             }
                             
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeDotSeparatorColor)
 
                             if !isViewingVideoEntry {
                                 // Backspace toggle button
@@ -1347,7 +1369,7 @@ struct ContentView: View {
                                 }
 
                                 Text("•")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(themeDotSeparatorColor)
                             }
 
                             Button(isFullscreen ? "Minimize" : "Fullscreen") {
@@ -1368,7 +1390,7 @@ struct ContentView: View {
                             }
                             
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeDotSeparatorColor)
                             
                             Button(action: {
                                 createNewEntry()
@@ -1389,7 +1411,7 @@ struct ContentView: View {
                             }
                             
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeDotSeparatorColor)
                             
                             // Theme toggle button
                             Button(action: {
@@ -1412,7 +1434,7 @@ struct ContentView: View {
                             }
 
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(themeDotSeparatorColor)
 
                             // Version history button
                             Button(action: {
@@ -1441,7 +1463,7 @@ struct ContentView: View {
                         }
                     }
                     .padding()
-                    .background(Color(colorScheme == .light ? .white : .black))
+                    .background(themeBackgroundColor)
                     .opacity(bottomNavOpacity)
                     .onHover { hovering in
                         isHoveringBottomNav = hovering
@@ -1564,9 +1586,7 @@ struct ContentView: View {
                                                         }) {
                                                             Image(systemName: "arrow.down.circle")
                                                                 .font(.system(size: 11))
-                                                                .foregroundColor(hoveredExportId == entry.id ? 
-                                                                    (colorScheme == .light ? .black : .white) : 
-                                                                    (colorScheme == .light ? .gray : .gray.opacity(0.8)))
+                                                                .foregroundColor(hoveredExportId == entry.id ? themeSecondaryTextHoverColor : themeSecondaryTextColor)
                                                         }
                                                         .buttonStyle(.plain)
                                                         .help("Export entry as PDF")
@@ -1638,7 +1658,7 @@ struct ContentView: View {
                     .scrollIndicators(.never)
                 }
                 .frame(width: 200)
-                .background(Color(colorScheme == .light ? .white : NSColor.black))
+                .background(themeBackgroundColor)
             }
         }
         .overlay {
@@ -2099,7 +2119,7 @@ struct ContentView: View {
         let font = NSFont(name: selectedFont, size: fontSize) ?? .systemFont(ofSize: fontSize)
         let textAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor(red: 0.20, green: 0.20, blue: 0.20, alpha: 1.0),
+            .foregroundColor: NSColor(red: 0.196, green: 0.196, blue: 0.196, alpha: 1.0),
             .paragraphStyle: paragraphStyle
         ]
         
