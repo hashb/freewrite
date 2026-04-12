@@ -357,23 +357,36 @@ struct ThemePickerView: View {
 struct TextEditorThemeConfigurator: NSViewRepresentable {
     let theme: AppTheme
 
+    class Coordinator {
+        weak var cachedTextView: NSTextView?
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         DispatchQueue.main.async {
-            applyTheme(from: view)
+            applyTheme(from: view, coordinator: context.coordinator)
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async {
-            applyTheme(from: nsView)
+            applyTheme(from: nsView, coordinator: context.coordinator)
         }
     }
 
-    private func applyTheme(from nsView: NSView) {
-        guard let textView = nsView.superview?.findSubview(ofType: NSTextView.self)
-            ?? nsView.window?.contentView?.findSubview(ofType: NSTextView.self) else {
+    private func applyTheme(from nsView: NSView, coordinator: Coordinator) {
+        // Use cached reference to avoid expensive full-hierarchy traversal on every state change.
+        let textView: NSTextView
+        if let cached = coordinator.cachedTextView {
+            textView = cached
+        } else if let found = nsView.superview?.findSubview(ofType: NSTextView.self)
+                    ?? nsView.window?.contentView?.findSubview(ofType: NSTextView.self) {
+            coordinator.cachedTextView = found
+            textView = found
+        } else {
             return
         }
 
@@ -388,8 +401,9 @@ struct TextEditorThemeConfigurator: NSViewRepresentable {
 
         // Walk every ancestor up to (but not including) the window content view,
         // clearing backgrounds and configuring the scroll view when found.
+        let windowContentView = textView.window?.contentView
         var ancestor: NSView? = textView.superview
-        while let v = ancestor, v !== nsView.window?.contentView {
+        while let v = ancestor, v !== windowContentView {
             v.wantsLayer = true
             v.layer?.backgroundColor = CGColor.clear
             if let sv = v as? NSScrollView {
