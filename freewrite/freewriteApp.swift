@@ -13,6 +13,8 @@ struct freewriteApp: App {
     @AppStorage("colorScheme") private var colorSchemeString: String = "light"
     
     init() {
+        // Disable automatic window tabbing to remove "Show Tab Bar" / "Show All Tabs" from View menu
+        NSWindow.allowsAutomaticWindowTabbing = false
         // Register Lato font
         if let fontURL = Bundle.main.url(forResource: "Lato-Regular", withExtension: "ttf") {
             CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)

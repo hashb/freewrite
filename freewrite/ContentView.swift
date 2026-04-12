@@ -957,6 +957,7 @@ struct ContentView: View {
                                             .font(.system(size: 13))
                                     }
                                     .buttonStyle(.plain)
+                                    .keyboardShortcut("c", modifiers: [.command, .shift])
                                     .foregroundColor(isHoveringCopyTranscript ? textHoverColor : textColor)
                                     .onHover { hovering in
                                         isHoveringCopyTranscript = hovering
@@ -984,6 +985,7 @@ struct ContentView: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+                                .keyboardShortcut("+", modifiers: .command)
                                 .foregroundColor(isHoveringSize ? textHoverColor : textColor)
                                 .onHover { hovering in
                                     isHoveringSize = hovering
@@ -1002,6 +1004,7 @@ struct ContentView: View {
                                     selectedFont = "Lato-Regular"
                                 }
                                 .buttonStyle(.plain)
+                                .keyboardShortcut("1", modifiers: .command)
                                 .foregroundColor(hoveredFont == "Lato" ? textHoverColor : textColor)
                                 .onHover { hovering in
                                     hoveredFont = hovering ? "Lato" : nil
@@ -1020,6 +1023,7 @@ struct ContentView: View {
                                     selectedFont = "Menlo-Regular"
                                 }
                                 .buttonStyle(.plain)
+                                .keyboardShortcut("2", modifiers: .command)
                                 .foregroundColor(hoveredFont == "Menlo" ? textHoverColor : textColor)
                                 .onHover { hovering in
                                     hoveredFont = hovering ? "Menlo" : nil
@@ -1038,6 +1042,7 @@ struct ContentView: View {
                                     selectedFont = ".AppleSystemUIFont"
                                 }
                                 .buttonStyle(.plain)
+                                .keyboardShortcut("3", modifiers: .command)
                                 .foregroundColor(hoveredFont == "System" ? textHoverColor : textColor)
                                 .onHover { hovering in
                                     hoveredFont = hovering ? "System" : nil
@@ -1048,6 +1053,18 @@ struct ContentView: View {
                                         NSCursor.pop()
                                     }
                                 }
+
+                                // Hidden button for font size decrease
+                                Button("") {
+                                    if let currentIndex = fontSizes.firstIndex(of: fontSize) {
+                                        let prevIndex = (currentIndex - 1 + fontSizes.count) % fontSizes.count
+                                        fontSize = fontSizes[prevIndex]
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                .keyboardShortcut("-", modifiers: .command)
+                                .frame(width: 0, height: 0)
+                                .opacity(0)
                                 
                             }
                             .padding(8)
@@ -1074,6 +1091,7 @@ struct ContentView: View {
                                 }
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut("t", modifiers: .command)
                             .foregroundColor(timerColor)
                             .onHover { hovering in
                                 isHoveringTimer = hovering
@@ -1124,6 +1142,7 @@ struct ContentView: View {
                                 .frame(width: 14, height: 14)
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut("r", modifiers: [.command, .shift])
                             .onHover { hovering in
                                 isHoveringVideoButton = hovering
                                 isHoveringBottomNav = hovering
@@ -1198,6 +1217,7 @@ struct ContentView: View {
                                 didCopyPrompt = false
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut("k", modifiers: .command)
                             .foregroundColor(isHoveringChat ? textHoverColor : textColor)
                             .onHover { hovering in
                                 isHoveringChat = hovering
@@ -1358,6 +1378,7 @@ struct ContentView: View {
                                         .foregroundColor(isHoveringBackspaceToggle ? textHoverColor : textColor)
                                 }
                                 .buttonStyle(.plain)
+                                .keyboardShortcut("b", modifiers: [.command, .shift])
                                 .onHover { hovering in
                                     isHoveringBackspaceToggle = hovering
                                     isHoveringBottomNav = hovering
@@ -1378,6 +1399,7 @@ struct ContentView: View {
                                 }
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut("f", modifiers: [.command, .control])
                             .foregroundColor(isHoveringFullscreen ? textHoverColor : textColor)
                             .onHover { hovering in
                                 isHoveringFullscreen = hovering
@@ -1399,6 +1421,7 @@ struct ContentView: View {
                                     .font(.system(size: 13))
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut("n", modifiers: .command)
                             .foregroundColor(isHoveringNewEntry ? textHoverColor : textColor)
                             .onHover { hovering in
                                 isHoveringNewEntry = hovering
@@ -1423,6 +1446,7 @@ struct ContentView: View {
                                     .foregroundColor(isHoveringThemeToggle ? textHoverColor : textColor)
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut("l", modifiers: [.command, .shift])
                             .onHover { hovering in
                                 isHoveringThemeToggle = hovering
                                 isHoveringBottomNav = hovering
@@ -1446,6 +1470,7 @@ struct ContentView: View {
                                     .foregroundColor(isHoveringClock ? textHoverColor : textColor)
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut("h", modifiers: [.command, .shift])
                             .onHover { hovering in
                                 isHoveringClock = hovering
                                 isHoveringBottomNav = hovering
