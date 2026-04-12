@@ -306,11 +306,11 @@ struct ThemePickerRow: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isSelected ? theme.typeHighlight.opacity(theme.isDarkTheme ? 0.18 : 0.62) : Color.clear)
+                .fill(theme.background)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isSelected ? theme.typeSubtle.opacity(0.55) : theme.gridClear.opacity(0.55), lineWidth: 1)
+                .stroke(isSelected ? theme.typeSubtle.opacity(0.85) : theme.gridClear.opacity(0.35), lineWidth: isSelected ? 1.5 : 1)
         )
     }
 }
@@ -323,7 +323,7 @@ struct ThemePickerView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Themes")
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
-                .foregroundColor(currentTheme.typeMain)
+                .foregroundColor(Color(NSColor.labelColor))
 
             ScrollView {
                 VStack(spacing: 8) {
@@ -351,11 +351,6 @@ struct ThemePickerView: View {
         }
         .padding(12)
         .frame(width: 250, height: 330)
-        .background(currentTheme.background)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(currentTheme.gridClear.opacity(0.85), lineWidth: 1)
-        )
     }
 }
 
@@ -390,6 +385,26 @@ struct TextEditorThemeConfigurator: NSViewRepresentable {
             .backgroundColor: NSColor(theme.typeHighlight),
             .foregroundColor: NSColor(theme.typeMain)
         ]
+
+        // Walk every ancestor up to (but not including) the window content view,
+        // clearing backgrounds and configuring the scroll view when found.
+        var ancestor: NSView? = textView.superview
+        while let v = ancestor, v !== nsView.window?.contentView {
+            v.wantsLayer = true
+            v.layer?.backgroundColor = CGColor.clear
+            if let sv = v as? NSScrollView {
+                sv.drawsBackground = false
+                sv.backgroundColor = .clear
+                sv.contentView.drawsBackground = false
+                sv.contentView.backgroundColor = .clear
+                sv.automaticallyAdjustsContentInsets = false
+                // Provide visual top/bottom breathing room inside the scroll view
+                // so the TextEditor can fill edge-to-edge without SwiftUI padding gaps.
+                sv.contentInsets = NSEdgeInsets(top: 40, left: 0, bottom: 64, right: 0)
+                sv.scrollerInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+            }
+            ancestor = v.superview
+        }
     }
 }
 
@@ -419,6 +434,8 @@ struct ContentView: View {
     @State private var lastClickTime: Date? = nil
     @State private var isHoveringBottomNav = false
     @State private var isHoveringFooterZone = false
+    @State private var footerHoverLatch: Bool = false
+    @State private var footerHideTask: DispatchWorkItem?
     @State private var selectedEntryIndex: Int = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var selectedEntryId: UUID? = nil
@@ -1125,16 +1142,13 @@ struct ContentView: View {
         return currentTheme.typeMain
     }
 
+    var isFooterTriggered: Bool {
+        isHoveringBottomNav || isHoveringFooterZone || showingThemePicker || showingChatMenu || showingVideoPermissionPopover
+    }
+
     var footerOpacity: Double {
-        if showingVideoRecording {
-            return 0
-        }
-
-        if isHoveringBottomNav || isHoveringFooterZone || showingThemePicker || showingChatMenu || showingVideoPermissionPopover {
-            return 1.0
-        }
-
-        return 0.0
+        if showingVideoRecording { return 0 }
+        return footerHoverLatch ? 1.0 : 0.0
     }
 
     var footerPanelFillColor: Color {
@@ -1195,10 +1209,8 @@ struct ContentView: View {
                     .scrollContentBackground(.hidden)
                     .scrollIndicators(.never)
                     .lineSpacing(lineHeight)
-                    .frame(maxWidth: 650)
-                    .padding(.top, 40)
+                    .frame(maxWidth: 650, maxHeight: .infinity)
                     .id("\(selectedFont)-\(fontSize)-\(colorScheme)")
-                    .padding(.bottom, footerOpacity > 0.05 ? navHeight : 0)
                     .colorScheme(colorScheme)
                     .onAppear {
                         placeholderText = placeholderOptions.randomElement() ?? "Begin writing"
@@ -1250,6 +1262,18 @@ struct ContentView: View {
                         .opacity(footerOpacity)
                         .allowsHitTesting(footerOpacity > 0.01)
                         .animation(.easeOut(duration: 0.18), value: footerOpacity)
+                        .onChange(of: isFooterTriggered) { _, triggered in
+                            footerHideTask?.cancel()
+                            if triggered {
+                                footerHoverLatch = true
+                            } else {
+                                let task = DispatchWorkItem {
+                                    footerHoverLatch = false
+                                }
+                                footerHideTask = task
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0, execute: task)
+                            }
+                        }
                     }
                 }
             }
@@ -1871,31 +1895,7 @@ struct ContentView: View {
     }
 
     private func footerGroupChrome() -> some View {
-        Group {
-            if #available(macOS 26.0, *) {
-                Color.clear
-                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(footerPanelStrokeColor.opacity(0.8), lineWidth: 1)
-                    )
-            } else {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.clear)
-                    .background(
-                        .ultraThinMaterial,
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(footerPanelFillColor)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(footerPanelStrokeColor, lineWidth: 1)
-                    )
-            }
-        }
+        Color.clear
     }
 
     private func footerButtonChrome(isHovered: Bool, isActive: Bool = false) -> some View {
