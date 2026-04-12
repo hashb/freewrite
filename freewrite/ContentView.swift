@@ -416,7 +416,6 @@ struct ContentView: View {
     @State private var blinkCount = 0
     @State private var isBlinking = false
     @State private var opacity: Double = 1.0
-    @State private var shouldShowGray = true // New state to control color
     @State private var lastClickTime: Date? = nil
     @State private var isHoveringBottomNav = false
     @State private var isHoveringFooterZone = false
@@ -426,19 +425,14 @@ struct ContentView: View {
     @State private var hoveredEntryId: UUID? = nil
     @State private var isHoveringChat = false  // Add this state variable
     @State private var showingChatMenu = false
-    @State private var chatMenuAnchor: CGPoint = .zero
-    @State private var showingSidebar = false  // Add this state variable
+    @State private var showingSidebar = false
     @State private var hoveredTrashId: UUID? = nil
     @State private var hoveredExportId: UUID? = nil
     @State private var placeholderText: String = ""  // Add this line
     @State private var isHoveringNewEntry = false
     @State private var isHoveringClock = false
     @State private var isHoveringHistory = false
-    @State private var isHoveringHistoryText = false
-    @State private var isHoveringHistoryPath = false
-    @State private var isHoveringHistoryArrow = false
     @State private var isHoveringCopyTranscript = false
-    @State private var isHoveringThemeToggle = false
     @State private var didCopyPrompt: Bool = false // Add state for copy prompt feedback
     @State private var didCopyTranscript: Bool = false
     @State private var selectedVideoHasTranscript = false
@@ -468,9 +462,7 @@ struct ContentView: View {
         "Just say it"
     ]
     
-    // Add file manager and save timer
     private let fileManager = FileManager.default
-    private let saveTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
     
     // Add cached documents directory
     private let documentsDirectory: URL = {
@@ -825,42 +817,6 @@ struct ContentView: View {
         return calendar.isDate(timestamp, inSameDayAs: today)
     }
     
-    // Add function to save text
-    private func saveText() {
-        let documentsDirectory = getDocumentsDirectory()
-        let fileURL = documentsDirectory.appendingPathComponent("entry.md")
-        
-        print("Attempting to save file to: \(fileURL.path)")
-        
-        do {
-            try text.write(to: fileURL, atomically: true, encoding: .utf8)
-            print("Successfully saved file")
-        } catch {
-            print("Error saving file: \(error)")
-            print("Error details: \(error.localizedDescription)")
-        }
-    }
-    
-    // Add function to load text
-    private func loadText() {
-        let documentsDirectory = getDocumentsDirectory()
-        let fileURL = documentsDirectory.appendingPathComponent("entry.md")
-        
-        print("Attempting to load file from: \(fileURL.path)")
-        
-        do {
-            if fileManager.fileExists(atPath: fileURL.path) {
-                text = try String(contentsOf: fileURL, encoding: .utf8)
-                print("Successfully loaded file")
-            } else {
-                print("File does not exist yet")
-            }
-        } catch {
-            print("Error loading file: \(error)")
-            print("Error details: \(error.localizedDescription)")
-        }
-    }
-    
     // Add function to load existing entries
     private func loadExistingEntries() {
         let documentsDirectory = getDocumentsDirectory()
@@ -1207,24 +1163,14 @@ struct ContentView: View {
             .frame(width: 1, height: 14)
     }
 
-    @ViewBuilder
-    private func footerGlassContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        if #available(macOS 26.0, *) {
-            GlassEffectContainer(spacing: 12) {
-                content()
-            }
-        } else {
-            content()
-        }
-    }
+    var textColor: Color { currentTheme.typeLight }
+    var textHoverColor: Color { currentTheme.typeMain }
+    var isViewingVideoEntry: Bool { currentVideoURL != nil }
 
-    
+
     var body: some View {
         let navHeight: CGFloat = 64
-        let textColor = currentTheme.typeLight
-        let textHoverColor = currentTheme.typeMain
-        let isViewingVideoEntry = currentVideoURL != nil
-        
+
         HStack(spacing: 0) {
             // Main content
             ZStack {
@@ -1294,491 +1240,11 @@ struct ContentView: View {
                                 }
                             }
 
-                        footerGlassContainer {
-                            HStack(alignment: .bottom, spacing: 12) {
-                            if isViewingVideoEntry {
-                                HStack(spacing: 8) {
-                                    if selectedVideoHasTranscript {
-                                        Button(action: {
-                                            copyTranscriptForSelectedVideoEntry()
-                                        }) {
-                                            Text(didCopyTranscript ? "Copied Transcript" : "Copy Transcript")
-                                                .font(.system(size: 13, weight: .medium, design: .rounded))
-                                                .foregroundColor(isHoveringCopyTranscript ? textHoverColor : textColor)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                                .background(footerButtonChrome(isHovered: isHoveringCopyTranscript, isActive: didCopyTranscript))
-                                        }
-                                        .buttonStyle(.plain)
-                                        .onHover { hovering in
-                                            isHoveringCopyTranscript = hovering
-                                            isHoveringBottomNav = hovering
-                                            if hovering {
-                                                NSCursor.pointingHand.push()
-                                            } else {
-                                                NSCursor.pop()
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(6)
-                                .background(footerGroupChrome())
-                                .onHover { hovering in
-                                    isHoveringBottomNav = hovering
-                                }
-                            } else {
-                                HStack(spacing: 8) {
-                                    Button(action: {
-                                        showingThemePicker.toggle()
-                                    }) {
-                                        HStack(spacing: 10) {
-                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                .fill(
-                                                    LinearGradient(
-                                                        colors: [currentTheme.backgroundFade, currentTheme.background],
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
-                                                .frame(width: 18, height: 18)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                        .stroke(currentTheme.gridClear.opacity(0.8), lineWidth: 1)
-                                                )
-
-                                            VStack(alignment: .leading, spacing: 1) {
-                                                Text(currentTheme.name)
-                                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                            }
-
-                                            Image(systemName: "chevron.up")
-                                                .font(.system(size: 9, weight: .bold))
-                                                .foregroundColor(textColor)
-                                        }
-                                        .foregroundColor(isHoveringThemePicker ? textHoverColor : textColor)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(footerButtonChrome(isHovered: isHoveringThemePicker, isActive: showingThemePicker))
-                                    }
-                                    .buttonStyle(.plain)
-                                    .onHover { hovering in
-                                        isHoveringThemePicker = hovering
-                                        isHoveringBottomNav = hovering
-                                        if hovering {
-                                            NSCursor.pointingHand.push()
-                                        } else {
-                                            NSCursor.pop()
-                                        }
-                                    }
-                                    .popover(isPresented: $showingThemePicker, attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0.0)), arrowEdge: .top) {
-                                        ThemePickerView(currentTheme: $currentTheme, showingThemePicker: $showingThemePicker)
-                                    }
-                                }
-                                .padding(6)
-                                .background(footerGroupChrome())
-                                .onHover { hovering in
-                                    isHoveringBottomNav = hovering
-                                }
-                            }
-
+                        HStack(alignment: .bottom, spacing: 12) {
+                            leftFooterGroup
                             Spacer()
-
-                            HStack(spacing: 6) {
-                            Button(timerButtonTitle) {
-                                let now = Date()
-                                if let lastClick = lastClickTime,
-                                   now.timeIntervalSince(lastClick) < 0.3 {
-                                    timeRemaining = 900
-                                    timerIsRunning = false
-                                    lastClickTime = nil
-                                } else {
-                                    timerIsRunning.toggle()
-                                    lastClickTime = now
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(timerColor)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(footerButtonChrome(isHovered: isHoveringTimer, isActive: timerIsRunning))
-                            .onHover { hovering in
-                                isHoveringTimer = hovering
-                                isHoveringBottomNav = hovering
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-                            .onAppear {
-                                NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
-                                    if isHoveringTimer {
-                                        let scrollBuffer = event.deltaY * 0.25
-                                        
-                                        if abs(scrollBuffer) >= 0.1 {
-                                            let currentMinutes = timeRemaining / 60
-                                            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
-                                            let direction = -scrollBuffer > 0 ? 5 : -5
-                                            let newMinutes = currentMinutes + direction
-                                            let roundedMinutes = (newMinutes / 5) * 5
-                                            let newTime = roundedMinutes * 60
-                                            timeRemaining = min(max(newTime, 0), 2700)
-                                        }
-                                    }
-                                    return event
-                                }
-                            }
-
-                            footerDivider
-
-                            // Video camera button
-                            Button(action: {
-                                guard !isPreparingVideoRecording else { return }
-                                startVideoRecordingPreflight()
-                            }) {
-                                Group {
-                                    if isPreparingVideoRecording {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                            .tint(isHoveringVideoButton ? textHoverColor : textColor)
-                                    } else {
-                                        Image(systemName: "video.fill")
-                                            .foregroundColor(isHoveringVideoButton ? textHoverColor : textColor)
-                                    }
-                                }
-                                .frame(width: 14, height: 14)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(footerButtonChrome(isHovered: isHoveringVideoButton, isActive: isPreparingVideoRecording))
-                            }
-                            .buttonStyle(.plain)
-                            .onHover { hovering in
-                                isHoveringVideoButton = hovering
-                                isHoveringBottomNav = hovering
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-                            .popover(
-                                isPresented: $showingVideoPermissionPopover,
-                                attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0.0)),
-                                arrowEdge: .top
-                            ) {
-                                VStack(spacing: 0) {
-                                    if let fallbackMessage = videoPermissionPopoverFallbackMessage {
-                                        Text(fallbackMessage)
-                                            .font(.system(size: 14))
-                                            .foregroundColor(popoverTextColor)
-                                            .lineLimit(nil)
-                                            .multilineTextAlignment(.leading)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                }
-
-                                    ForEach(videoPermissionPopoverItems) { item in
-                                        if item.id != videoPermissionPopoverItems.first?.id || videoPermissionPopoverFallbackMessage != nil {
-                                            Divider()
-                                        }
-
-                                        Button(action: {
-                                            showingVideoPermissionPopover = false
-                                            openVideoPermissionSettings(item.settingsPane)
-                                        }) {
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                Text(item.message)
-                                                    .font(.system(size: 14))
-                                                    .lineLimit(nil)
-                                                    .multilineTextAlignment(.leading)
-                                                    .fixedSize(horizontal: false, vertical: true)
-
-                                                Text(item.buttonLabel)
-                                                    .font(.system(size: 12))
-                                                    .opacity(0.85)
-                                            }
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .foregroundColor(popoverTextColor)
-                                        .onHover { hovering in
-                                            if hovering {
-                                                NSCursor.pointingHand.push()
-                                            } else {
-                                                NSCursor.pop()
-                                            }
-                                        }
-                                    }
-                                }
-                                .frame(minWidth: 300, idealWidth: 320, maxWidth: 360)
-                                .background(popoverBackgroundColor)
-                            }
-
-                            footerDivider
-
-                            Button("Chat") {
-                                showingChatMenu = true
-                                // Ensure didCopyPrompt is reset when opening the menu
-                                didCopyPrompt = false
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(isHoveringChat ? textHoverColor : textColor)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(footerButtonChrome(isHovered: isHoveringChat, isActive: showingChatMenu))
-                            .onHover { hovering in
-                                isHoveringChat = hovering
-                                isHoveringBottomNav = hovering
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-                            .popover(isPresented: $showingChatMenu, attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0)), arrowEdge: .top) {
-                                VStack(spacing: 0) { // Wrap everything in a VStack for consistent styling and onChange
-                                    let isVideoEntry = currentVideoURL != nil
-                                    let chatSourceText = currentChatSourceText()
-                                    
-                                    // Calculate potential URL lengths
-                                    let gptFullText = aiChatPrompt + "\n\n" + chatSourceText
-                                    let claudeFullText = claudePrompt + "\n\n" + chatSourceText
-                                    let encodedGptText = gptFullText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                                    let encodedClaudeText = claudeFullText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                                    
-                                    let gptUrlLength = "https://chat.openai.com/?m=".count + encodedGptText.count
-                                    let claudeUrlLength = "https://claude.ai/new?q=".count + encodedClaudeText.count
-                                    let isUrlTooLong = gptUrlLength > 6000 || claudeUrlLength > 6000
-                                    
-                                    if isUrlTooLong {
-                                        // View for long text (URL too long)
-                                        Text("Hey, your entry is quite long. You'll need to manually copy the prompt by clicking 'Copy Prompt' below and then paste it into AI of your choice (ex. ChatGPT). The prompt includes your entry as well. So just copy paste and go! See what the AI says.")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(popoverTextColor)
-                                            .lineLimit(nil)
-                                            .multilineTextAlignment(.leading)
-                                            .frame(width: 200, alignment: .leading)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                        
-                                        Divider()
-                                        
-                                        Button(action: {
-                                            copyPromptToClipboard()
-                                            didCopyPrompt = true
-                                        }) {
-                                            Text(didCopyPrompt ? "Copied!" : "Copy Prompt")
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .foregroundColor(popoverTextColor)
-                                        .onHover { hovering in
-                                            if hovering {
-                                                NSCursor.pointingHand.push()
-                                            } else {
-                                                NSCursor.pop()
-                                            }
-                                        }
-                                        
-                                    } else if !isVideoEntry && text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("hi. my name is farza.") {
-                                        Text("Yo. Sorry, you can't chat with the guide lol. Please write your own entry.")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(popoverTextColor)
-                                            .frame(width: 250)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                    } else if !isVideoEntry && text.count < 350 {
-                                        Text("Please free write for at minimum 5 minutes first. Then click this. Trust.")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(popoverTextColor)
-                                            .frame(width: 250)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                    } else {
-                                        // View for normal text length
-                                        Button(action: {
-                                            showingChatMenu = false
-                                            openChatGPT()
-                                        }) {
-                                            Text("ChatGPT")
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .foregroundColor(popoverTextColor)
-                                        .onHover { hovering in
-                                            if hovering {
-                                                NSCursor.pointingHand.push()
-                                            } else {
-                                                NSCursor.pop()
-                                            }
-                                        }
-                                        
-                                        Divider()
-                                        
-                                        Button(action: {
-                                            showingChatMenu = false
-                                            openClaude()
-                                        }) {
-                                            Text("Claude")
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .foregroundColor(popoverTextColor)
-                                        .onHover { hovering in
-                                            if hovering {
-                                                NSCursor.pointingHand.push()
-                                            } else {
-                                                NSCursor.pop()
-                                            }
-                                        }
-                                        
-                                        Divider()
-                                        
-                                        Button(action: {
-                                            // Don't dismiss menu, just copy and update state
-                                            copyPromptToClipboard()
-                                            didCopyPrompt = true
-                                        }) {
-                                            Text(didCopyPrompt ? "Copied!" : "Copy Prompt")
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .foregroundColor(popoverTextColor)
-                                        .onHover { hovering in
-                                            if hovering {
-                                                NSCursor.pointingHand.push()
-                                            } else {
-                                                NSCursor.pop()
-                                            }
-                                        }
-                                    }
-                                }
-                                .frame(minWidth: 120, maxWidth: 250) // Allow width to adjust
-                                .background(popoverBackgroundColor)
-                                .cornerRadius(8)
-                                .shadow(color: Color.black.opacity(0.1), radius: 4, y: 2)
-                                // Reset copied state when popover dismisses
-                                .onChange(of: showingChatMenu) { _, isShowing in
-                                    if !isShowing {
-                                        didCopyPrompt = false
-                                    }
-                                }
-                            }
-                            
-                            footerDivider
-
-                            if !isViewingVideoEntry {
-                                // Backspace toggle button
-                                Button(action: {
-                                    backspaceDisabled.toggle()
-                                }) {
-                                    Text(backspaceDisabled ? "Backspace is Off" : "Backspace is On")
-                                        .foregroundColor(isHoveringBackspaceToggle ? textHoverColor : textColor)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(footerButtonChrome(isHovered: isHoveringBackspaceToggle, isActive: backspaceDisabled))
-                                }
-                                .buttonStyle(.plain)
-                                .onHover { hovering in
-                                    isHoveringBackspaceToggle = hovering
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
-
-                                footerDivider
-                            }
-
-                            Button(isFullscreen ? "Minimize" : "Fullscreen") {
-                                if let window = NSApplication.shared.windows.first {
-                                    window.toggleFullScreen(nil)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(isHoveringFullscreen ? textHoverColor : textColor)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(footerButtonChrome(isHovered: isHoveringFullscreen, isActive: isFullscreen))
-                            .onHover { hovering in
-                                isHoveringFullscreen = hovering
-                                isHoveringBottomNav = hovering
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-                            
-                            footerDivider
-                            
-                            Button(action: {
-                                createNewEntry()
-                            }) {
-                                Text("New Entry")
-                                    .font(.system(size: 13))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(isHoveringNewEntry ? textHoverColor : textColor)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(footerButtonChrome(isHovered: isHoveringNewEntry))
-                            .onHover { hovering in
-                                isHoveringNewEntry = hovering
-                                isHoveringBottomNav = hovering
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-                            
-                            footerDivider
-
-                            // Version history button
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    showingSidebar.toggle()
-                                }
-                            }) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                    .foregroundColor(isHoveringClock ? textHoverColor : textColor)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(footerButtonChrome(isHovered: isHoveringClock, isActive: showingSidebar))
-                            }
-                            .buttonStyle(.plain)
-                            .onHover { hovering in
-                                isHoveringClock = hovering
-                                isHoveringBottomNav = hovering
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
+                            rightFooterGroup
                         }
-                            .padding(4)
-                            .background(footerGroupChrome())
-                            .onHover { hovering in
-                                isHoveringBottomNav = hovering
-                            }
-                        }
-                        }
-
                         .padding(.horizontal, 18)
                         .padding(.bottom, 10)
                         .opacity(footerOpacity)
@@ -2024,6 +1490,383 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willExitFullScreenNotification)) { _ in
             isFullscreen = false
+        }
+    }
+
+    // MARK: - Footer Views
+
+    @ViewBuilder
+    private var leftFooterGroup: some View {
+        if isViewingVideoEntry {
+            if selectedVideoHasTranscript {
+                HStack(spacing: 8) {
+                    Button(action: copyTranscriptForSelectedVideoEntry) {
+                        Text(didCopyTranscript ? "Copied Transcript" : "Copy Transcript")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundColor(isHoveringCopyTranscript ? textHoverColor : textColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(footerButtonChrome(isHovered: isHoveringCopyTranscript, isActive: didCopyTranscript))
+                    }
+                    .buttonStyle(.plain)
+                    .onHover { hovering in
+                        isHoveringCopyTranscript = hovering
+                        isHoveringBottomNav = hovering
+                        if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                    }
+                }
+                .padding(6)
+                .background(footerGroupChrome())
+                .onHover { isHoveringBottomNav = $0 }
+            }
+        } else {
+            HStack(spacing: 8) {
+                Button(action: { showingThemePicker.toggle() }) {
+                    HStack(spacing: 10) {
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [currentTheme.backgroundFade, currentTheme.background],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 18, height: 18)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .stroke(currentTheme.gridClear.opacity(0.8), lineWidth: 1)
+                            )
+                        Text(currentTheme.name)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(textColor)
+                    }
+                    .foregroundColor(isHoveringThemePicker ? textHoverColor : textColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(footerButtonChrome(isHovered: isHoveringThemePicker, isActive: showingThemePicker))
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    isHoveringThemePicker = hovering
+                    isHoveringBottomNav = hovering
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+                .popover(isPresented: $showingThemePicker, attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0.0)), arrowEdge: .top) {
+                    ThemePickerView(currentTheme: $currentTheme, showingThemePicker: $showingThemePicker)
+                        .preferredColorScheme(currentTheme.isDarkTheme ? .dark : .light)
+                }
+            }
+            .padding(6)
+            .background(footerGroupChrome())
+            .onHover { isHoveringBottomNav = $0 }
+        }
+    }
+
+    @ViewBuilder
+    private var rightFooterGroup: some View {
+        HStack(spacing: 6) {
+            Button(timerButtonTitle) {
+                let now = Date()
+                if let lastClick = lastClickTime, now.timeIntervalSince(lastClick) < 0.3 {
+                    timeRemaining = 900
+                    timerIsRunning = false
+                    lastClickTime = nil
+                } else {
+                    timerIsRunning.toggle()
+                    lastClickTime = now
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(timerColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(footerButtonChrome(isHovered: isHoveringTimer, isActive: timerIsRunning))
+            .onHover { hovering in
+                isHoveringTimer = hovering
+                isHoveringBottomNav = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+            .onAppear {
+                NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+                    if isHoveringTimer {
+                        let scrollBuffer = event.deltaY * 0.25
+                        if abs(scrollBuffer) >= 0.1 {
+                            let currentMinutes = timeRemaining / 60
+                            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                            let direction = -scrollBuffer > 0 ? 5 : -5
+                            let newMinutes = currentMinutes + direction
+                            let roundedMinutes = (newMinutes / 5) * 5
+                            timeRemaining = min(max(roundedMinutes * 60, 0), 2700)
+                        }
+                    }
+                    return event
+                }
+            }
+
+            footerDivider
+
+            Button(action: {
+                guard !isPreparingVideoRecording else { return }
+                startVideoRecordingPreflight()
+            }) {
+                Group {
+                    if isPreparingVideoRecording {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(isHoveringVideoButton ? textHoverColor : textColor)
+                    } else {
+                        Image(systemName: "video.fill")
+                            .foregroundColor(isHoveringVideoButton ? textHoverColor : textColor)
+                    }
+                }
+                .frame(width: 14, height: 14)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(footerButtonChrome(isHovered: isHoveringVideoButton, isActive: isPreparingVideoRecording))
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                isHoveringVideoButton = hovering
+                isHoveringBottomNav = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+            .popover(
+                isPresented: $showingVideoPermissionPopover,
+                attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0.0)),
+                arrowEdge: .top
+            ) {
+                videoPermissionPopoverContent
+            }
+
+            footerDivider
+
+            Button("Chat") {
+                showingChatMenu = true
+                didCopyPrompt = false
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(isHoveringChat ? textHoverColor : textColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(footerButtonChrome(isHovered: isHoveringChat, isActive: showingChatMenu))
+            .onHover { hovering in
+                isHoveringChat = hovering
+                isHoveringBottomNav = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+            .popover(isPresented: $showingChatMenu, attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0)), arrowEdge: .top) {
+                chatMenuContent
+            }
+
+            footerDivider
+
+            if !isViewingVideoEntry {
+                Button(action: { backspaceDisabled.toggle() }) {
+                    Text(backspaceDisabled ? "Backspace is Off" : "Backspace is On")
+                        .foregroundColor(isHoveringBackspaceToggle ? textHoverColor : textColor)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(footerButtonChrome(isHovered: isHoveringBackspaceToggle, isActive: backspaceDisabled))
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    isHoveringBackspaceToggle = hovering
+                    isHoveringBottomNav = hovering
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+
+                footerDivider
+            }
+
+            Button(isFullscreen ? "Minimize" : "Fullscreen") {
+                NSApplication.shared.windows.first?.toggleFullScreen(nil)
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(isHoveringFullscreen ? textHoverColor : textColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(footerButtonChrome(isHovered: isHoveringFullscreen, isActive: isFullscreen))
+            .onHover { hovering in
+                isHoveringFullscreen = hovering
+                isHoveringBottomNav = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+
+            footerDivider
+
+            Button(action: createNewEntry) {
+                Text("New Entry").font(.system(size: 13))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(isHoveringNewEntry ? textHoverColor : textColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(footerButtonChrome(isHovered: isHoveringNewEntry))
+            .onHover { hovering in
+                isHoveringNewEntry = hovering
+                isHoveringBottomNav = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+
+            footerDivider
+
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.2)) { showingSidebar.toggle() }
+            }) {
+                Image(systemName: "clock.arrow.circlepath")
+                    .foregroundColor(isHoveringClock ? textHoverColor : textColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(footerButtonChrome(isHovered: isHoveringClock, isActive: showingSidebar))
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                isHoveringClock = hovering
+                isHoveringBottomNav = hovering
+                if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+        }
+        .padding(4)
+        .background(footerGroupChrome())
+        .onHover { isHoveringBottomNav = $0 }
+    }
+
+    @ViewBuilder
+    private var videoPermissionPopoverContent: some View {
+        VStack(spacing: 0) {
+            if let fallbackMessage = videoPermissionPopoverFallbackMessage {
+                Text(fallbackMessage)
+                    .font(.system(size: 14))
+                    .foregroundColor(popoverTextColor)
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            }
+            ForEach(videoPermissionPopoverItems) { item in
+                if item.id != videoPermissionPopoverItems.first?.id || videoPermissionPopoverFallbackMessage != nil {
+                    Divider()
+                }
+                Button(action: {
+                    showingVideoPermissionPopover = false
+                    openVideoPermissionSettings(item.settingsPane)
+                }) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.message)
+                            .font(.system(size: 14))
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(item.buttonLabel)
+                            .font(.system(size: 12))
+                            .opacity(0.85)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(popoverTextColor)
+                .onHover { hovering in
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+            }
+        }
+        .frame(minWidth: 300, idealWidth: 320, maxWidth: 360)
+        .background(popoverBackgroundColor)
+    }
+
+    @ViewBuilder
+    private var chatMenuContent: some View {
+        let chatSourceText = currentChatSourceText()
+        let gptFullText = aiChatPrompt + "\n\n" + chatSourceText
+        let claudeFullText = claudePrompt + "\n\n" + chatSourceText
+        let encodedGptText = gptFullText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedClaudeText = claudeFullText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let isUrlTooLong = ("https://chat.openai.com/?m=".count + encodedGptText.count) > 6000
+            || ("https://claude.ai/new?q=".count + encodedClaudeText.count) > 6000
+
+        VStack(spacing: 0) {
+            if isUrlTooLong {
+                Text("Hey, your entry is quite long. You'll need to manually copy the prompt by clicking 'Copy Prompt' below and then paste it into AI of your choice (ex. ChatGPT). The prompt includes your entry as well. So just copy paste and go! See what the AI says.")
+                    .font(.system(size: 14))
+                    .foregroundColor(popoverTextColor)
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .frame(width: 200, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                Divider()
+                Button(action: { copyPromptToClipboard(); didCopyPrompt = true }) {
+                    Text(didCopyPrompt ? "Copied!" : "Copy Prompt")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(popoverTextColor)
+                .onHover { hovering in
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+            } else if !isViewingVideoEntry && text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("hi. my name is farza.") {
+                Text("Yo. Sorry, you can't chat with the guide lol. Please write your own entry.")
+                    .font(.system(size: 14))
+                    .foregroundColor(popoverTextColor)
+                    .frame(width: 250)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            } else if !isViewingVideoEntry && text.count < 350 {
+                Text("Please free write for at minimum 5 minutes first. Then click this. Trust.")
+                    .font(.system(size: 14))
+                    .foregroundColor(popoverTextColor)
+                    .frame(width: 250)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+            } else {
+                Button(action: { showingChatMenu = false; openChatGPT() }) {
+                    Text("ChatGPT")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(popoverTextColor)
+                .onHover { hovering in
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+                Divider()
+                Button(action: { showingChatMenu = false; openClaude() }) {
+                    Text("Claude")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(popoverTextColor)
+                .onHover { hovering in
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+                Divider()
+                Button(action: { copyPromptToClipboard(); didCopyPrompt = true }) {
+                    Text(didCopyPrompt ? "Copied!" : "Copy Prompt")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(popoverTextColor)
+                .onHover { hovering in
+                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                }
+            }
+        }
+        .frame(minWidth: 120, maxWidth: 250)
+        .background(popoverBackgroundColor)
+        .onChange(of: showingChatMenu) { _, isShowing in
+            if !isShowing { didCopyPrompt = false }
         }
     }
 
