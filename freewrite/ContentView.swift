@@ -1239,6 +1239,32 @@ struct ContentView: View {
                     )
                 }
 
+                // Top edge gradient
+                VStack {
+                    LinearGradient(
+                        colors: [currentTheme.background, Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 90)
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea(edges: .top)
+                    Spacer()
+                }
+
+                // Bottom edge gradient
+                VStack {
+                    Spacer()
+                    LinearGradient(
+                        colors: [Color.clear, currentTheme.background],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 90)
+                    .allowsHitTesting(false)
+                    .ignoresSafeArea(edges: .bottom)
+                }
+
                 VStack(spacing: 0) {
                     Spacer()
                     ZStack(alignment: .bottom) {
@@ -1895,7 +1921,23 @@ struct ContentView: View {
     }
 
     private func footerGroupChrome() -> some View {
-        Color.clear
+        Group {
+            if #available(macOS 26.0, *) {
+                Color.clear
+                    .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(footerPanelStrokeColor, lineWidth: 0.5)
+                    )
+            } else {
+                Capsule(style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(footerPanelStrokeColor, lineWidth: 0.5)
+                    )
+            }
+        }
     }
 
     private func footerButtonChrome(isHovered: Bool, isActive: Bool = false) -> some View {
