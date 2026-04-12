@@ -75,6 +75,99 @@ struct HeartEmoji: Identifiable {
     var offset: CGFloat = 0
 }
 
+struct AppTheme: Equatable {
+    let id: String
+    let name: String
+    let isDarkTheme: Bool
+    let background: Color
+    let backgroundFade: Color
+    let typeMain: Color
+    let typeLight: Color
+
+    static func == (lhs: AppTheme, rhs: AppTheme) -> Bool { lhs.id == rhs.id }
+
+    private static func c(_ hex: String) -> Color {
+        var s = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+        if s.count == 6 { s += "FF" }
+        var v: UInt64 = 0
+        Scanner(string: s).scanHexInt64(&v)
+        return Color(
+            red:     Double((v & 0xFF000000) >> 24) / 255.0,
+            green:   Double((v & 0x00FF0000) >> 16) / 255.0,
+            blue:    Double((v & 0x0000FF00) >> 8)  / 255.0,
+            opacity: Double(v & 0x000000FF)          / 255.0
+        )
+    }
+
+    static let all: [AppTheme] = [
+        AppTheme(id: "vancouver",    name: "Vancouver",    isDarkTheme: false, background: c("#FFFFFF"), backgroundFade: c("#ECECEC"), typeMain: c("#473F37"), typeLight: c("#B2B2B2")),
+        AppTheme(id: "a24",          name: "A24",          isDarkTheme: true,  background: c("#0F1612"), backgroundFade: c("#23332A"), typeMain: c("#E3D4B4"), typeLight: c("#828282")),
+        AppTheme(id: "agrabah",      name: "Agrabah",      isDarkTheme: true,  background: c("#0A0A28"), backgroundFade: c("#1B1943"), typeMain: c("#F0F0F0"), typeLight: c("#828282")),
+        AppTheme(id: "demogorgon",   name: "Demogorgon",   isDarkTheme: true,  background: c("#0A0A0F"), backgroundFade: c("#14141E"), typeMain: c("#E6E6E6"), typeLight: c("#828282")),
+        AppTheme(id: "gundam-wing",  name: "Gundam Wing",  isDarkTheme: false, background: c("#F5F5F5"), backgroundFade: c("#E4E2E2"), typeMain: c("#323232"), typeLight: c("#969696")),
+        AppTheme(id: "knight",       name: "Knight",       isDarkTheme: true,  background: c("#0A0A0F"), backgroundFade: c("#161822"), typeMain: c("#585858"), typeLight: c("#828282")),
+        AppTheme(id: "mononoke",     name: "Mononoke",     isDarkTheme: true,  background: c("#03180C"), backgroundFade: c("#0D2819"), typeMain: c("#DCDCDC"), typeLight: c("#A0A0A0")),
+        AppTheme(id: "muaddib",      name: "Muad'Dib",     isDarkTheme: false, background: c("#E1D2B4"), backgroundFade: c("#EDDEBF"), typeMain: c("#9F865E"), typeLight: c("#AE9C7E")),
+        AppTheme(id: "nord",         name: "Nord",         isDarkTheme: false, background: c("#FAF5E6"), backgroundFade: c("#FFFFF0"), typeMain: c("#321E0A"), typeLight: c("#969696")),
+        AppTheme(id: "piccolo",      name: "Piccolo",      isDarkTheme: false, background: c("#F5FFF5"), backgroundFade: c("#CEECCE"), typeMain: c("#323232"), typeLight: c("#969696")),
+        AppTheme(id: "sanrio",       name: "Sanrio",       isDarkTheme: false, background: c("#FFFFFF"), backgroundFade: c("#F4E7ED"), typeMain: c("#E876B2"), typeLight: c("#9CCCE8")),
+        AppTheme(id: "shadow-moses", name: "Shadow Moses", isDarkTheme: true,  background: c("#292D2D"), backgroundFade: c("#374041"), typeMain: c("#CADEE8"), typeLight: c("#859393")),
+        AppTheme(id: "tartan",       name: "Tartan",       isDarkTheme: false, background: c("#F3F1EB"), backgroundFade: c("#FFFFF0"), typeMain: c("#3C280A"), typeLight: c("#828282")),
+        AppTheme(id: "tokyo-drift",  name: "Tokyo Drift",  isDarkTheme: true,  background: c("#2A2626"), backgroundFade: c("#302F2F"), typeMain: c("#EBE3DB"), typeLight: c("#7B7B7B")),
+        AppTheme(id: "totoro",       name: "Totoro",       isDarkTheme: false, background: c("#FAF5EB"), backgroundFade: c("#E8DECD"), typeMain: c("#46321E"), typeLight: c("#B4B4B4")),
+        AppTheme(id: "vendetta",     name: "Vendetta",     isDarkTheme: true,  background: c("#141414"), backgroundFade: c("#330404"), typeMain: c("#DCDCDC"), typeLight: c("#787878")),
+    ]
+
+    static func find(id: String) -> AppTheme {
+        all.first { $0.id == id } ?? all[0]
+    }
+}
+
+struct ThemePickerView: View {
+    @Binding var currentTheme: AppTheme
+    @Binding var showingThemePicker: Bool
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(AppTheme.all, id: \.id) { theme in
+                    Button(action: {
+                        currentTheme = theme
+                        UserDefaults.standard.set(theme.id, forKey: "themeId")
+                        showingThemePicker = false
+                    }) {
+                        HStack(spacing: 10) {
+                            Circle()
+                                .fill(theme.background)
+                                .overlay(Circle().stroke(theme.typeLight, lineWidth: 1))
+                                .frame(width: 14, height: 14)
+                            Text(theme.name)
+                                .font(.system(size: 13))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            if theme == currentTheme {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(currentTheme.typeMain)
+                    .onHover { hovering in
+                        if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+                    }
+                    if theme.id != AppTheme.all.last?.id {
+                        Divider()
+                    }
+                }
+            }
+        }
+        .frame(width: 200)
+        .background(currentTheme.background)
+    }
+}
+
 struct ContentView: View {
     private struct VideoPermissionPopoverItem: Identifiable {
         let id = UUID()
@@ -87,15 +180,14 @@ struct ContentView: View {
     @State private var text: String = ""  // Remove initial welcome text since we'll handle it in createNewEntry
     
     @State private var isFullscreen = false
-    @State private var selectedFont: String = "Lato-Regular"
-    @State private var currentRandomFont: String = ""
+    @State private var currentTheme: AppTheme = AppTheme.all[0]
+    @State private var showingThemePicker = false
+    @State private var isHoveringThemePicker = false
+    @State private var fontSize: CGFloat = 18
     @State private var timeRemaining: Int = 900  // Changed to 900 seconds (15 minutes)
     @State private var timerIsRunning = false
     @State private var isHoveringTimer = false
     @State private var isHoveringFullscreen = false
-    @State private var hoveredFont: String? = nil
-    @State private var isHoveringSize = false
-    @State private var fontSize: CGFloat = 18
     @State private var blinkCount = 0
     @State private var isBlinking = false
     @State private var opacity: Double = 1.0
@@ -121,8 +213,7 @@ struct ContentView: View {
     @State private var isHoveringHistoryPath = false
     @State private var isHoveringHistoryArrow = false
     @State private var isHoveringCopyTranscript = false
-    @State private var colorScheme: ColorScheme = .light // Add state for color scheme
-    @State private var isHoveringThemeToggle = false // Add state for theme toggle hover
+    @State private var isHoveringThemeToggle = false
     @State private var didCopyPrompt: Bool = false // Add state for copy prompt feedback
     @State private var didCopyTranscript: Bool = false
     @State private var selectedVideoHasTranscript = false
@@ -140,8 +231,6 @@ struct ContentView: View {
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     let entryHeight: CGFloat = 40
     
-    let availableFonts = NSFontManager.shared.availableFontFamilies
-    let standardFonts = ["Lato-Regular", "Arial", ".AppleSystemUIFont", "Times New Roman"]
     let fontSizes: [CGFloat] = [16, 18, 20, 22, 24, 26]
     let placeholderOptions = [
         "Begin writing",
@@ -225,11 +314,14 @@ struct ContentView: View {
     Here's my journal entry:
     """
     
-    // Initialize with saved theme preference if available
+    // Derived color scheme from theme
+    var colorScheme: ColorScheme { currentTheme.isDarkTheme ? .dark : .light }
+    // Fixed writing font matching Antinote's aesthetic
+    var selectedFont: String { "Menlo" }
+
     init() {
-        // Load saved color scheme preference
-        let savedScheme = UserDefaults.standard.string(forKey: "colorScheme") ?? "light"
-        _colorScheme = State(initialValue: savedScheme == "dark" ? .dark : .light)
+        let savedThemeId = UserDefaults.standard.string(forKey: "themeId") ?? "vancouver"
+        _currentTheme = State(initialValue: AppTheme.find(id: savedThemeId))
     }
     
     // Modify getDocumentsDirectory to use cached value
@@ -675,10 +767,6 @@ struct ContentView: View {
         }
     }
     
-    var randomButtonTitle: String {
-        return currentRandomFont.isEmpty ? "Random" : "Random [\(currentRandomFont)]"
-    }
-
     private func startVideoRecordingPreflight() {
         guard !isPreparingVideoRecording, !showingVideoRecording else {
             return
@@ -835,11 +923,7 @@ struct ContentView: View {
     }
     
     var timerColor: Color {
-        if timerIsRunning {
-            return isHoveringTimer ? (colorScheme == .light ? .black : .white) : .gray.opacity(0.8)
-        } else {
-            return isHoveringTimer ? (colorScheme == .light ? .black : .white) : (colorScheme == .light ? .gray : .gray.opacity(0.8))
-        }
+        return isHoveringTimer ? currentTheme.typeMain : currentTheme.typeLight
     }
     
     var lineHeight: CGFloat {
@@ -854,25 +938,24 @@ struct ContentView: View {
     
     // Add a color utility computed property
     var popoverBackgroundColor: Color {
-        return colorScheme == .light ? Color(NSColor.controlBackgroundColor) : Color(NSColor.darkGray)
+        return currentTheme.background
     }
-    
+
     var popoverTextColor: Color {
-        return colorScheme == .light ? Color.primary : Color.white
+        return currentTheme.typeMain
     }
 
     
     var body: some View {
-        let buttonBackground = colorScheme == .light ? Color.white : Color.black
         let navHeight: CGFloat = 68
-        let textColor = colorScheme == .light ? Color.gray : Color.gray.opacity(0.8)
-        let textHoverColor = colorScheme == .light ? Color.black : Color.white
+        let textColor = currentTheme.typeLight
+        let textHoverColor = currentTheme.typeMain
         let isViewingVideoEntry = currentVideoURL != nil
         
         HStack(spacing: 0) {
             // Main content
             ZStack {
-                Color(colorScheme == .light ? .white : .black)
+                currentTheme.background
                     .ignoresSafeArea()
 
                 // Show video player if a video entry is selected
@@ -887,9 +970,9 @@ struct ContentView: View {
                 } else {
                     // Show text editor for text entries
                     TextEditor(text: $text)
-                    .background(Color(colorScheme == .light ? .white : .black))
+                    .background(currentTheme.background)
                     .font(.custom(selectedFont, size: fontSize))
-                    .foregroundColor(colorScheme == .light ? Color(red: 0.20, green: 0.20, blue: 0.20) : Color(red: 0.9, green: 0.9, blue: 0.9))
+                    .foregroundColor(currentTheme.typeMain)
                     .scrollContentBackground(.hidden)
                     .scrollIndicators(.never)
                     .lineSpacing(lineHeight)
@@ -917,7 +1000,7 @@ struct ContentView: View {
                             if text.isEmpty {
                                 Text(placeholderText)
                                     .font(.custom(selectedFont, size: fontSize))
-                                    .foregroundColor(colorScheme == .light ? .gray.opacity(0.5) : .gray.opacity(0.6))
+                                    .foregroundColor(currentTheme.typeLight.opacity(0.6))
                                     .allowsHitTesting(false)
                                     .offset(x: 5, y: 40)
                             }
@@ -957,121 +1040,23 @@ struct ContentView: View {
                                 isHoveringBottomNav = hovering
                             }
                         } else {
-                            // Font buttons (left)
+                            // Theme picker (left)
                             HStack(spacing: 8) {
-                                Button(fontSizeButtonTitle) {
-                                    if let currentIndex = fontSizes.firstIndex(of: fontSize) {
-                                        let nextIndex = (currentIndex + 1) % fontSizes.count
-                                        fontSize = fontSizes[nextIndex]
-                                    }
+                                Button(action: {
+                                    showingThemePicker.toggle()
+                                }) {
+                                    Text(currentTheme.name)
+                                        .font(.system(size: 13))
+                                        .foregroundColor(isHoveringThemePicker ? textHoverColor : textColor)
                                 }
                                 .buttonStyle(.plain)
-                                .foregroundColor(isHoveringSize ? textHoverColor : textColor)
                                 .onHover { hovering in
-                                    isHoveringSize = hovering
+                                    isHoveringThemePicker = hovering
                                     isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
+                                    if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
                                 }
-                                
-                                Text("•")
-                                    .foregroundColor(.gray)
-                                
-                                Button("Lato") {
-                                    selectedFont = "Lato-Regular"
-                                    currentRandomFont = ""
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "Lato" ? textHoverColor : textColor)
-                                .onHover { hovering in
-                                    hoveredFont = hovering ? "Lato" : nil
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
-                                
-                                Text("•")
-                                    .foregroundColor(.gray)
-                                
-                                Button("Arial") {
-                                    selectedFont = "Arial"
-                                    currentRandomFont = ""
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "Arial" ? textHoverColor : textColor)
-                                .onHover { hovering in
-                                    hoveredFont = hovering ? "Arial" : nil
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
-                                
-                                Text("•")
-                                    .foregroundColor(.gray)
-                                
-                                Button("System") {
-                                    selectedFont = ".AppleSystemUIFont"
-                                    currentRandomFont = ""
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "System" ? textHoverColor : textColor)
-                                .onHover { hovering in
-                                    hoveredFont = hovering ? "System" : nil
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
-                                
-                                Text("•")
-                                    .foregroundColor(.gray)
-                                
-                                Button("Serif") {
-                                    selectedFont = "Times New Roman"
-                                    currentRandomFont = ""
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "Serif" ? textHoverColor : textColor)
-                                .onHover { hovering in
-                                    hoveredFont = hovering ? "Serif" : nil
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
-                                }
-                                
-                                Text("•")
-                                    .foregroundColor(.gray)
-                                
-                                Button(randomButtonTitle) {
-                                    if let randomFont = availableFonts.randomElement() {
-                                        selectedFont = randomFont
-                                        currentRandomFont = randomFont
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundColor(hoveredFont == "Random" ? textHoverColor : textColor)
-                                .onHover { hovering in
-                                    hoveredFont = hovering ? "Random" : nil
-                                    isHoveringBottomNav = hovering
-                                    if hovering {
-                                        NSCursor.pointingHand.push()
-                                    } else {
-                                        NSCursor.pop()
-                                    }
+                                .popover(isPresented: $showingThemePicker, attachmentAnchor: .point(UnitPoint(x: 0.5, y: 0.0)), arrowEdge: .top) {
+                                    ThemePickerView(currentTheme: $currentTheme, showingThemePicker: $showingThemePicker)
                                 }
                             }
                             .padding(8)
@@ -1128,7 +1113,7 @@ struct ContentView: View {
                             }
 
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(textColor)
 
                             // Video camera button
                             Button(action: {
@@ -1210,11 +1195,11 @@ struct ContentView: View {
                                     }
                                 }
                                 .frame(minWidth: 300, idealWidth: 320, maxWidth: 360)
-                                .background(colorScheme == .light ? Color.white : Color.black)
+                                .background(currentTheme.background)
                             }
 
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(textColor)
 
                             Button("Chat") {
                                 showingChatMenu = true
@@ -1371,7 +1356,7 @@ struct ContentView: View {
                             }
                             
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(textColor)
 
                             if !isViewingVideoEntry {
                                 // Backspace toggle button
@@ -1414,7 +1399,7 @@ struct ContentView: View {
                             }
                             
                             Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(textColor)
                             
                             Button(action: {
                                 createNewEntry()
@@ -1435,30 +1420,7 @@ struct ContentView: View {
                             }
                             
                             Text("•")
-                                .foregroundColor(.gray)
-                            
-                            // Theme toggle button
-                            Button(action: {
-                                colorScheme = colorScheme == .light ? .dark : .light
-                                // Save preference
-                                UserDefaults.standard.set(colorScheme == .light ? "light" : "dark", forKey: "colorScheme")
-                            }) {
-                                Image(systemName: colorScheme == .light ? "moon.fill" : "sun.max.fill")
-                                    .foregroundColor(isHoveringThemeToggle ? textHoverColor : textColor)
-                            }
-                            .buttonStyle(.plain)
-                            .onHover { hovering in
-                                isHoveringThemeToggle = hovering
-                                isHoveringBottomNav = hovering
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-
-                            Text("•")
-                                .foregroundColor(.gray)
+                                .foregroundColor(textColor)
 
                             // Version history button
                             Button(action: {
@@ -1487,18 +1449,12 @@ struct ContentView: View {
                         }
                     }
                     .padding()
-                    .background(Color(colorScheme == .light ? .white : .black))
+                    .background(currentTheme.background)
                     .opacity(bottomNavOpacity)
                     .onHover { hovering in
                         isHoveringBottomNav = hovering
-                        if hovering {
-                            withAnimation(.easeOut(duration: 0.2)) {
-                                bottomNavOpacity = 1.0
-                            }
-                        } else if timerIsRunning {
-                            withAnimation(.easeIn(duration: 1.0)) {
-                                bottomNavOpacity = 0.0
-                            }
+                        withAnimation(hovering ? .easeOut(duration: 0.15) : .easeIn(duration: 0.4)) {
+                            bottomNavOpacity = hovering ? 1.0 : 0.0
                         }
                     }
                 }
@@ -1610,9 +1566,7 @@ struct ContentView: View {
                                                         }) {
                                                             Image(systemName: "arrow.down.circle")
                                                                 .font(.system(size: 11))
-                                                                .foregroundColor(hoveredExportId == entry.id ? 
-                                                                    (colorScheme == .light ? .black : .white) : 
-                                                                    (colorScheme == .light ? .gray : .gray.opacity(0.8)))
+                                                                .foregroundColor(hoveredExportId == entry.id ? currentTheme.typeMain : currentTheme.typeLight)
                                                         }
                                                         .buttonStyle(.plain)
                                                         .help("Export entry as PDF")
@@ -1684,7 +1638,7 @@ struct ContentView: View {
                     .scrollIndicators(.never)
                 }
                 .frame(width: 200)
-                .background(Color(colorScheme == .light ? .white : NSColor.black))
+                .background(currentTheme.background)
             }
         }
         .overlay {
@@ -1706,7 +1660,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 1100, minHeight: 600)
         .animation(.easeInOut(duration: 0.2), value: showingSidebar)
-        .preferredColorScheme(colorScheme)
+        .preferredColorScheme(currentTheme.isDarkTheme ? .dark : .light)
         .onAppear {
             showingSidebar = false  // Hide sidebar by default
             loadExistingEntries()
@@ -1729,11 +1683,6 @@ struct ContentView: View {
                 timeRemaining -= 1
             } else if timeRemaining == 0 {
                 timerIsRunning = false
-                if !isHoveringBottomNav {
-                    withAnimation(.easeOut(duration: 1.0)) {
-                        bottomNavOpacity = 1.0
-                    }
-                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.willEnterFullScreenNotification)) { _ in
@@ -1746,9 +1695,9 @@ struct ContentView: View {
     
     private func backgroundColor(for entry: HumanEntry) -> Color {
         if entry.id == selectedEntryId {
-            return Color.gray.opacity(0.1)  // More subtle selection highlight
+            return currentTheme.typeLight.opacity(0.15)
         } else if entry.id == hoveredEntryId {
-            return Color.gray.opacity(0.05)  // Even more subtle hover state
+            return currentTheme.typeLight.opacity(0.07)
         } else {
             return Color.clear
         }
