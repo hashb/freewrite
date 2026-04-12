@@ -845,7 +845,7 @@ struct ContentView: View {
     }
 
     private var themeSecondaryTextHoverColor: Color {
-        colorScheme == .light ? Color(red: 0.902, green: 0.902, blue: 0.902) : Color(red: 0.204, green: 0.204, blue: 0.204)
+        colorScheme == .light ? Color(red: 0.204, green: 0.204, blue: 0.204) : Color(red: 0.902, green: 0.902, blue: 0.902)
     }
 
     private var themeDotSeparatorColor: Color {
