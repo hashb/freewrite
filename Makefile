@@ -3,7 +3,7 @@ SHELL   := /bin/bash
 PROJECT          = freewrite.xcodeproj
 SCHEME           = freewrite
 BUILD            = build
-VERSION          ?= 1.0
+VERSION          ?= 1.6
 NOTARIZE         ?= true
 KEYCHAIN_PROFILE ?= notarytool
 
@@ -16,7 +16,7 @@ TEAM_ID := $(shell security find-identity -v -p codesigning 2>/dev/null \
 	| sed 's/.*(\(.*\)).*/\1/' \
 	| tr -d ' ')
 
-.PHONY: all release release-unsigned open dmg clean
+.PHONY: all release release-unsigned open dmg bump-version clean
 
 all: release
 
@@ -91,6 +91,13 @@ dmg:
 	else \
 		echo "Done. Run 'make dmg NOTARIZE=true' to notarize."; \
 	fi
+
+# Bump MARKETING_VERSION in Xcode project
+# Usage: make bump-version VERSION=1.7
+bump-version:
+	@[ -n "$(VERSION)" ] || { echo "Usage: make bump-version VERSION=x.y"; exit 1; }
+	sed -i '' 's/MARKETING_VERSION = [^;]*/MARKETING_VERSION = $(VERSION)/' $(PROJECT)/project.pbxproj
+	@echo "Version bumped to $(VERSION)"
 
 clean:
 	rm -rf build
