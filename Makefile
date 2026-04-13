@@ -1,47 +1,96 @@
-PROJECT   = freewrite.xcodeproj
-SCHEME    = freewrite
-BUILD_DIR = build/Release
-APP       = freewrite.app
+SHELL   := /bin/bash
 
-# Use xcpretty for cleaner output if available
-XCPRETTY := $(shell command -v xcpretty 2>/dev/null)
-PIPE      = $(if $(XCPRETTY),| xcpretty,)
+PROJECT          = freewrite.xcodeproj
+SCHEME           = freewrite
+BUILD            = build
+VERSION          ?= 1.0
+NOTARIZE         ?= true
+KEYCHAIN_PROFILE ?= notarytool
 
-.PHONY: all release release-unsigned open clean
+ARCHIVE = $(BUILD)/Freewrite.xcarchive
+EXPORT  = $(BUILD)/export
+DMG     = $(BUILD)/Freewrite-$(VERSION).dmg
+
+TEAM_ID := $(shell security find-identity -v -p codesigning 2>/dev/null \
+	| grep -m1 "Developer ID Application" \
+	| sed 's/.*(\(.*\)).*/\1/' \
+	| tr -d ' ')
+
+.PHONY: all release release-unsigned open dmg clean
 
 all: release
 
-# Signed release build (requires a valid Mac Developer certificate)
+# Quick signed build for local use
 release:
-	@mkdir -p $(BUILD_DIR)
+	mkdir -p $(BUILD)/Release
 	xcodebuild \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-configuration Release \
-		CONFIGURATION_BUILD_DIR=$(CURDIR)/$(BUILD_DIR) \
-		build \
-		$(PIPE)
-	@echo ""
-	@echo "Built: $(BUILD_DIR)/$(APP)"
+		CONFIGURATION_BUILD_DIR=$(CURDIR)/$(BUILD)/Release \
+		build
 
-# Unsigned build — for local testing without a developer certificate
+# Unsigned build for local testing without a developer certificate
 release-unsigned:
-	@mkdir -p $(BUILD_DIR)
+	mkdir -p $(BUILD)/Release
 	xcodebuild \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-configuration Release \
-		CONFIGURATION_BUILD_DIR=$(CURDIR)/$(BUILD_DIR) \
+		CONFIGURATION_BUILD_DIR=$(CURDIR)/$(BUILD)/Release \
 		CODE_SIGN_IDENTITY="" \
 		CODE_SIGNING_REQUIRED=NO \
 		CODE_SIGNING_ALLOWED=NO \
-		build \
-		$(PIPE)
-	@echo ""
-	@echo "Built (unsigned): $(BUILD_DIR)/$(APP)"
+		build
 
 open: release-unsigned
-	open $(BUILD_DIR)/$(APP)
+	open $(BUILD)/Release/$(SCHEME).app
+
+# Archive → export → DMG → (optional) notarize + staple
+# Usage:
+#   make dmg                             # signed DMG
+#   make dmg NOTARIZE=true               # + notarize + staple
+#   make dmg NOTARIZE=true VERSION=1.2
+#
+# One-time notarization setup:
+#   xcrun notarytool store-credentials "notarytool"
+dmg:
+	@[ -n "$(TEAM_ID)" ] || { echo "No Developer ID Application certificate found in Keychain"; exit 1; }
+	@echo "Team ID: $(TEAM_ID)"
+	rm -rf $(BUILD) && mkdir -p $(BUILD)
+	xcodebuild archive \
+		-project $(PROJECT) \
+		-scheme $(SCHEME) \
+		-configuration Release \
+		-archivePath $(ARCHIVE) \
+		DEVELOPMENT_TEAM=$(TEAM_ID) \
+		CODE_SIGN_STYLE=Manual \
+		CODE_SIGN_IDENTITY="Developer ID Application"
+	printf '%s\n' \
+		'<?xml version="1.0" encoding="UTF-8"?>' \
+		'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+		'<plist version="1.0"><dict>' \
+		'<key>method</key><string>developer-id</string>' \
+		'<key>signingStyle</key><string>manual</string>' \
+		"<key>teamID</key><string>$(TEAM_ID)</string>" \
+		'</dict></plist>' > $(BUILD)/ExportOptions.plist
+	xcodebuild -exportArchive \
+		-archivePath $(ARCHIVE) \
+		-exportOptionsPlist $(BUILD)/ExportOptions.plist \
+		-exportPath $(EXPORT)
+	npx create-dmg $(EXPORT)/$(SCHEME).app $(BUILD)/ 2>&1 || true
+	mv "$$(find $(BUILD) -maxdepth 1 -name '*.dmg' | head -1)" $(DMG)
+	@echo "DMG: $(DMG)"
+	@if [ "$(NOTARIZE)" = "true" ]; then \
+		echo "Notarizing..."; \
+		xcrun notarytool submit "$(DMG)" --keychain-profile "$(KEYCHAIN_PROFILE)" --wait; \
+		echo "Stapling..."; \
+		xcrun stapler staple "$(DMG)"; \
+		xcrun stapler validate "$(DMG)"; \
+		echo "Done: $(DMG)"; \
+	else \
+		echo "Done. Run 'make dmg NOTARIZE=true' to notarize."; \
+	fi
 
 clean:
 	rm -rf build
